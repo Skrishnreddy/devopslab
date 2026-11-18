@@ -223,7 +223,7 @@ def test_websocket_rejects_foreign_origin(authed):
             authed.websocket_connect(WS.format(sid),
                                      headers={"Origin": "http://evil.example"}) as ws:
         ws.receive_text()
-    assert e.value.code == 4403
+    assert e.value.code == 1008  # refused before accept: a real server answers HTTP 403
 
 
 def test_websocket_rejects_missing_login(client, authed):

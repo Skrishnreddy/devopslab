@@ -93,9 +93,13 @@ async def close_session(sid: str, p: Principal = Depends(current_principal)):
 @router.websocket("/sessions/{sid}/stream")
 async def stream(ws: WebSocket, sid: str):
     # Browsers send cookies and Origin on WebSocket upgrades but CORS doesn't apply, so check both here.
+    # A foreign Origin is refused at the handshake (HTTP 403) and learns nothing more.
     if ws.headers.get("origin") not in settings.allowed_origins:
-        await ws.close(code=4403, reason="Origin not allowed")
+        await ws.close(code=1008)
         return
+    # Past the Origin check, accept first so the UI gets a close code it can explain
+    # (closing before accept would turn every case into a bare HTTP 403).
+    await ws.accept()
     db = next(get_db())
     try:
         principal = principal_from_cookie(ws.cookies.get(COOKIE), db)
@@ -114,7 +118,6 @@ async def stream(ws: WebSocket, sid: str):
         await ws.close(code=4409, reason=session.error or "Terminal is not ready")
         return
 
-    await ws.accept()
     try:
         shell = await asyncio.to_thread(mgr.backend.exec_shell, session.pod, asyncio.get_running_loop())
     except Exception as e:

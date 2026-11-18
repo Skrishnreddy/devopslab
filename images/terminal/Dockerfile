@@ -26,7 +26,8 @@ RUN set -eux; arch="${TARGETARCH:-$(dpkg --print-architecture)}"; \
 
 # Rename the stock uid-1000 user to "learner". Home is an emptyDir at runtime
 # (root filesystem is read-only), so the skeleton is copied in by the entrypoint.
-RUN usermod -l learner -d /home/learner -m ubuntu && groupmod -n learner ubuntu
+RUN usermod -l learner -d /home/learner -m ubuntu && groupmod -n learner ubuntu \
+    && usermod -G "" learner  # drop the stock sudo/adm/... supplementary groups
 COPY bashrc /etc/devopslab/bashrc
 COPY entrypoint.sh /usr/local/bin/devopslab-entrypoint
 RUN chmod 0755 /usr/local/bin/devopslab-entrypoint
