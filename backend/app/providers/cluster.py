@@ -63,7 +63,9 @@ class KindCluster:
         return ComponentHealth(id=cid, name=name, status="ok", version=parse(res.stdout), message="Installed")
 
     async def _kind_cluster(self) -> ComponentHealth:
-        res = await run("kind", "get", "clusters")
+        # kind talks to whatever Docker context is current; pin it to the lab's Colima
+        # profile so the result doesn't depend on the user's global context.
+        res = await run("kind", "get", "clusters", env={"DOCKER_CONTEXT": settings.docker_context})
         if res.missing:
             return ComponentHealth(id="kind", name="kind", status="missing", message="kind is not installed",
                                    remediation="Run `make prereqs`")

@@ -5,6 +5,16 @@
 source "$(dirname "$0")/lib.sh"
 for t in colima docker kind kubectl helm; do need "$t"; done
 
+# `colima start` switches the global Docker context; remember the user's so we can restore it.
+PREV_CONTEXT="$(env -u DOCKER_CONTEXT docker context show 2>/dev/null || true)"
+restore_context() {
+  if [[ -n "$PREV_CONTEXT" && "$PREV_CONTEXT" != "colima-$COLIMA_PROFILE" ]]; then
+    env -u DOCKER_CONTEXT docker context use "$PREV_CONTEXT" >/dev/null 2>&1 && info "Docker context restored to '$PREV_CONTEXT'"
+  fi
+  return 0
+}
+trap restore_context EXIT
+
 if colima status -p "$COLIMA_PROFILE" >/dev/null 2>&1; then
   info "Colima profile '$COLIMA_PROFILE' already running"
 else

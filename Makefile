@@ -2,6 +2,8 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 S := infra/scripts
+# Pinned backend deps support Python 3.12-3.13 (pydantic-core can't build on 3.14 yet).
+PYTHON ?= $(shell command -v python3.12 || command -v python3.13 || echo python3)
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -24,7 +26,8 @@ status: ## Show VM, node and pod health
 
 # ---- app ----------------------------------------------------------------------
 install: ## Install backend + frontend dependencies
-	cd backend && python3 -m venv .venv && .venv/bin/pip install -q -r requirements-dev.txt
+	@$(PYTHON) -c 'import sys; v=sys.version_info[:2]; sys.exit(0 if (3,12)<=v<(3,14) else "Need Python 3.12 or 3.13, found %d.%d. Run: brew install python@3.12" % v)'
+	cd backend && $(PYTHON) -m venv --clear .venv && .venv/bin/pip install -q -r requirements-dev.txt
 	cd frontend && npm ci
 
 backend: ## Run the API on 127.0.0.1:8000

@@ -144,6 +144,8 @@ Configuration: copy `.env.example` to `backend/.env`.
 | Colima **not running** / Docker Engine unreachable | `make up` |
 | `colima start` fails on first run | `colima delete -p devopslab` then `make up`; check free disk |
 | Cluster unreachable after reboot | `make up` (resumes the VM; the cluster is kept) |
+| `make install` fails building pydantic-core | Your default Python is 3.14. `brew install python@3.12`; `make install` picks `python3.12` automatically |
+| You also use Docker Desktop | Fine. DevOpsLab uses its own Docker context (`colima-devopslab`) and puts your current context back after `make up` |
 | Login says the token is invalid | `make token` and use the new link; tokens rotate if the file was deleted |
 | Port 5173 or 8000 already in use | Stop the other process or set `DEVOPSLAB_PORT` / Vite `--port` |
 | Mac feels slow | `make down` when you're not using the lab; lower `COLIMA_MEMORY`; use a smaller Ollama model |

@@ -1,5 +1,6 @@
 """Run fixed CLI commands with a timeout. Never pass user input as argv."""
 import asyncio
+import os
 import shutil
 from dataclasses import dataclass
 
@@ -16,11 +17,12 @@ class Result:
     timed_out: bool = False
 
 
-async def run(*argv: str, timeout: float | None = None) -> Result:
+async def run(*argv: str, timeout: float | None = None, env: dict[str, str] | None = None) -> Result:
     if shutil.which(argv[0]) is None:
         return Result(False, "", f"{argv[0]} not found on PATH", None, missing=True)
     proc = await asyncio.create_subprocess_exec(
-        *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        env={**os.environ, **env} if env else None,
     )
     try:
         out, err = await asyncio.wait_for(proc.communicate(), timeout or settings.command_timeout_seconds)

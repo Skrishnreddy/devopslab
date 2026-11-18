@@ -9,8 +9,10 @@ from app.providers import commands, runtime
 from app.providers.commands import Result
 
 
-def fake_runner(table: dict[tuple, Result]):
-    async def _run(*argv, timeout=None):
+def fake_runner(table: dict[tuple, Result], calls: list | None = None):
+    async def _run(*argv, timeout=None, env=None):
+        if calls is not None:
+            calls.append((argv, env))
         for prefix, result in table.items():
             if argv[: len(prefix)] == prefix:
                 return result
@@ -120,3 +122,26 @@ def test_ollama_url_must_be_local(url):
     from app.core.config import Settings
     with pytest.raises(ValidationError, match="127.0.0.1"):
         Settings(ollama_url=url)
+
+
+def test_kind_check_is_pinned_to_the_lab_docker_context(authed, monkeypatch):
+    calls: list = []
+    fn = fake_runner({("kind", "get"): ok("cloudmart")}, calls)
+    for mod in (runtime, cluster_mod):
+        monkeypatch.setattr(mod, "run", fn)
+    monkeypatch.setattr(ai_mod, "_get_json", ollama_down)
+    authed.get("/api/v1/infra/health")
+    kind_get = [env for argv, env in calls if argv[:3] == ("kind", "get", "clusters")]
+    assert kind_get == [{"DOCKER_CONTEXT": "colima-devopslab"}]
+    docker = [argv for argv, _ in calls if argv[0] == "docker"]
+    assert docker and all(a[1:3] == ("--context", "colima-devopslab") for a in docker)
+
+
+async def _echo_env():
+    return await commands.run("sh", "-c", "echo $DOCKER_CONTEXT", env={"DOCKER_CONTEXT": "colima-x"})
+
+
+@pytest.mark.anyio
+async def test_run_passes_env_without_dropping_path():
+    r = await _echo_env()
+    assert r.ok and r.stdout == "colima-x"
