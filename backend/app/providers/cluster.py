@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import Protocol
 
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 from kubernetes.config.config_exception import ConfigException
 
 from ..core.config import settings
+from . import explorer as ex
 from .commands import run
 from .health import ComponentHealth
 
@@ -22,6 +24,22 @@ TIMEOUT = 4
 
 class ClusterUnavailable(Exception):
     pass
+
+
+class ClusterAPIError(Exception):
+    """The API server answered with an error (404, 403, ...). Shown to the learner verbatim."""
+
+    def __init__(self, status: int, message: str):
+        super().__init__(message)
+        self.status, self.message = status, message
+
+
+def _api_error(e: ApiException) -> ClusterAPIError:
+    try:
+        message = json.loads(e.body).get("message") or e.reason
+    except (TypeError, ValueError):
+        message = e.body or e.reason
+    return ClusterAPIError(e.status, str(message))
 
 
 class ClusterProvider(Protocol):
@@ -49,6 +67,10 @@ class KindCluster:
             return fn(*args, _request_timeout=TIMEOUT, **kwargs)
         except ClusterUnavailable:
             raise
+        except ApiException as e:
+            if e.status:
+                raise _api_error(e) from e
+            raise ClusterUnavailable(f"Kubernetes API unreachable: {e.reason}"[:400]) from e
         except Exception as e:  # urllib3 connection errors, ApiException, timeouts
             raise ClusterUnavailable(f"Kubernetes API unreachable: {e.__class__.__name__}: {e}"[:400]) from e
 
@@ -163,3 +185,78 @@ class KindCluster:
                 "age_seconds": int((now - created).total_seconds()) if created else None,
             })
         return out
+
+    # ---- explorer (Phase 3) ------------------------------------------
+    def _apis(self):
+        api = self._api()
+        return client.CoreV1Api(api), client.AppsV1Api(api)
+
+    def namespaces(self) -> list[dict]:
+        core, _ = self._apis()
+        return [ex.namespace_row(n) for n in self._call(core.list_namespace).items]
+
+    def deployments(self, namespace: str | None = None) -> list[dict]:
+        _, apps = self._apis()
+        items = (self._call(apps.list_namespaced_deployment, namespace) if namespace
+                 else self._call(apps.list_deployment_for_all_namespaces)).items
+        return [ex.deployment_row(d) for d in items]
+
+    def services(self, namespace: str | None = None) -> list[dict]:
+        core, _ = self._apis()
+        items = (self._call(core.list_namespaced_service, namespace) if namespace
+                 else self._call(core.list_service_for_all_namespaces)).items
+        return [ex.service_row(s) for s in items]
+
+    def events(self, namespace: str | None = None, limit: int = 200) -> list[dict]:
+        core, _ = self._apis()
+        items = (self._call(core.list_namespaced_event, namespace) if namespace
+                 else self._call(core.list_event_for_all_namespaces)).items
+        rows = sorted((ex.event_row(e) for e in items),
+                      key=lambda r: r["last_seen_seconds"] if r["last_seen_seconds"] is not None else 10**9)
+        return rows[:limit]
+
+    def pod(self, namespace: str, name: str) -> dict:
+        core, _ = self._apis()
+        p = self._call(core.read_namespaced_pod, name, namespace)
+        evs = self._call(core.list_namespaced_event, namespace,
+                         field_selector=f"involvedObject.kind=Pod,involvedObject.name={name}").items
+        evs.sort(key=lambda e: e.last_timestamp or e.event_time or e.metadata.creation_timestamp, reverse=True)
+        return ex.pod_detail(p, evs)
+
+    def yaml(self, kind: str, namespace: str | None, name: str) -> str:
+        if kind not in ex.KINDS:
+            raise ClusterAPIError(400, f"YAML view isn't available for {kind}")
+        core, apps = self._apis()
+        read = {
+            "pod": lambda: self._call(core.read_namespaced_pod, name, namespace),
+            "service": lambda: self._call(core.read_namespaced_service, name, namespace),
+            "configmap": lambda: self._call(core.read_namespaced_config_map, name, namespace),
+            "deployment": lambda: self._call(apps.read_namespaced_deployment, name, namespace),
+            "namespace": lambda: self._call(core.read_namespace, name),
+            "node": lambda: self._call(core.read_node, name),
+        }[kind]
+        obj = read()
+        obj.kind = obj.kind or kind.capitalize()
+        return ex.to_yaml(obj)
+
+    def logs(self, namespace: str, name: str, container: str | None, tail: int, previous: bool = False) -> str:
+        core, _ = self._apis()
+        kw = {"tail_lines": tail, "timestamps": False, "previous": previous}
+        if container:
+            kw["container"] = container
+        return self._call(core.read_namespaced_pod_log, name, namespace, **kw)
+
+    def follow_logs(self, namespace: str, name: str, container: str | None, tail: int):
+        """Open a follow stream. Returns the raw urllib3 response; the caller must release it."""
+        core, _ = self._apis()
+        kw = {"tail_lines": tail, "follow": True, "_preload_content": False}
+        if container:
+            kw["container"] = container
+        try:
+            return core.read_namespaced_pod_log(name, namespace, _request_timeout=(TIMEOUT, None), **kw)
+        except ApiException as e:
+            if e.status:
+                raise _api_error(e) from e
+            raise ClusterUnavailable(f"Kubernetes API unreachable: {e.reason}") from e
+        except Exception as e:
+            raise ClusterUnavailable(f"Kubernetes API unreachable: {e.__class__.__name__}: {e}"[:400]) from e

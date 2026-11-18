@@ -28,3 +28,10 @@ def terminal() -> TerminalManager:
 
     pods = KubePodBackend(api_factory=cluster()._api)  # type: ignore[attr-defined]
     return TerminalManager({"linux": pods, "kubernetes": pods, "docker": DockerVMBackend()})
+
+
+@cache
+def lab_ops():
+    from .lab_ops import LabOperations
+
+    return LabOperations()

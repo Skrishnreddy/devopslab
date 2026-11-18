@@ -1,20 +1,21 @@
 import { vi } from "vitest";
 
 type Handler = unknown | ((init?: RequestInit) => unknown);
-export interface Route { status?: number; body: Handler }
+export interface Route { status?: number; body: Handler; text?: string }
 
 /** Minimal fetch mock keyed by "METHOD /api/v1/path" (query string ignored). */
 export function mockApi(routes: Record<string, Route | unknown>) {
-  const calls: { key: string; init?: RequestInit }[] = [];
+  const calls: { key: string; url: string; init?: RequestInit }[] = [];
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = (init?.method ?? "GET").toUpperCase();
     const key = `${method} ${url.split("?")[0]}`;
-    calls.push({ key, init });
+    calls.push({ key, url, init });
     const hit = routes[key] as Route | undefined;
     const route: Route = hit && typeof hit === "object" && "body" in hit ? hit : { body: hit };
     if (hit === undefined) return new Response(JSON.stringify({ error: { code: "not_found", message: key } }), { status: 404 });
     const body = typeof route.body === "function" ? (route.body as (i?: RequestInit) => unknown)(init) : route.body;
     const status = route.status ?? 200;
+    if (route.text !== undefined) return new Response(route.text, { status });
     return new Response(status === 204 ? null : JSON.stringify(body), { status });
   });
   vi.stubGlobal("fetch", fetchMock);
