@@ -1,0 +1,35 @@
+# Learn Mode content. Each module has a level (beginner|intermediate|advanced),
+# a practical task, and later (Stage 5) a lab id + checks that verify the task.
+tracks:
+  - id: kubernetes
+    name: Kubernetes
+    icon: kubernetes
+    status: available
+    modules:
+      - {id: k8s-01, order: 1,  title: Kubernetes Architecture, level: beginner,     task: Explore the cluster}
+      - {id: k8s-02, order: 2,  title: Pods,                    level: beginner,     task: Create and delete Pods}
+      - {id: k8s-03, order: 3,  title: ReplicaSets,             level: beginner,     task: Maintain replicas}
+      - {id: k8s-04, order: 4,  title: Deployments,             level: beginner,     task: Deploy an application}
+      - {id: k8s-05, order: 5,  title: Services,                level: beginner,     task: Fix connectivity}
+      - {id: k8s-06, order: 6,  title: Ingress,                 level: intermediate, task: Configure routing}
+      - {id: k8s-07, order: 7,  title: ConfigMaps,              level: intermediate, task: Change application configuration}
+      - {id: k8s-08, order: 8,  title: Secrets,                 level: intermediate, task: Manage credentials}
+      - {id: k8s-09, order: 9,  title: Storage,                 level: intermediate, task: Configure PV and PVC}
+      - {id: k8s-10, order: 10, title: StatefulSets,            level: intermediate, task: Deploy PostgreSQL}
+      - {id: k8s-11, order: 11, title: Probes,                  level: intermediate, task: Fix unhealthy Pods}
+      - {id: k8s-12, order: 12, title: Scheduling,              level: intermediate, task: Configure node placement}
+      - {id: k8s-13, order: 13, title: HPA,                     level: intermediate, task: Scale the application}
+      - {id: k8s-14, order: 14, title: RBAC,                    level: advanced,     task: Configure permissions}
+      - {id: k8s-15, order: 15, title: NetworkPolicies,         level: advanced,     task: Control traffic}
+      - {id: k8s-16, order: 16, title: Helm,                    level: advanced,     task: Package applications}
+      - {id: k8s-17, order: 17, title: Monitoring,              level: advanced,     task: Build dashboards}
+      - {id: k8s-18, order: 18, title: GitOps,                  level: advanced,     task: Deploy using Argo CD}
+      - {id: k8s-19, order: 19, title: Security,                level: advanced,     task: Scan and secure containers}
+      - {id: k8s-20, order: 20, title: Production Support,      level: advanced,     task: Resolve incidents}
+  - {id: docker,     name: Docker,     icon: docker,     status: planned, modules: []}
+  - {id: linux,      name: Linux,      icon: linux,      status: planned, modules: []}
+  - {id: terraform,  name: Terraform,  icon: terraform,  status: planned, modules: []}
+  - {id: jenkins,    name: Jenkins,    icon: jenkins,    status: planned, modules: []}
+  - {id: ansible,    name: Ansible,    icon: ansible,    status: planned, modules: []}
+  - {id: monitoring, name: Monitoring, icon: monitoring, status: planned, modules: []}
+  - {id: devsecops,  name: DevSecOps,  icon: security,   status: planned, modules: []}

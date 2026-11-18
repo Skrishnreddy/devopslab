@@ -1,0 +1,63 @@
+# Engineer Mode projects. `lab` points at labs/<lab>/ (a kustomization deployed
+# into resettable namespaces). `stage` is the build stage that delivers it.
+projects:
+  - id: cloudmart
+    name: CloudMart E-Commerce
+    lab: cloudmart
+    stage: 4
+    status: planned
+    summary: React frontend, FastAPI backend, PostgreSQL, Redis and NGINX Ingress.
+    components: [React frontend, FastAPI backend, PostgreSQL, Redis, NGINX Ingress, Services]
+    topics: [Pods, Deployments, ReplicaSets, Services, Namespaces, ConfigMaps, Secrets, Ingress, Persistent Volumes]
+    incidents:
+      - {id: cm-001, title: Frontend cannot reach backend,     severity: medium}
+      - {id: cm-002, title: Backend cannot connect to PostgreSQL, severity: high}
+      - {id: cm-003, title: Redis connection refused,           severity: medium}
+      - {id: cm-004, title: Users receive HTTP 503,             severity: high}
+      - {id: cm-005, title: Pod in CrashLoopBackOff,            severity: high}
+  - id: prod-ops
+    name: Kubernetes Production Operations
+    lab: prod-ops
+    stage: 6
+    status: planned
+    summary: StatefulSets, Jobs, CronJobs and HPA spread across worker nodes.
+    components: [Multiple deployments, StatefulSets, Persistent Volumes, Jobs and CronJobs, HPA]
+    topics: [Scheduling, Taints and tolerations, Node affinity, Requests and limits, Probes, Autoscaling, Rolling updates]
+    incidents:
+      - {id: po-001, title: Pod cannot be scheduled,       severity: high}
+      - {id: po-002, title: Memory exhaustion (OOMKilled), severity: high}
+      - {id: po-003, title: Node NotReady,                 severity: critical}
+      - {id: po-004, title: Rolling deployment stuck,      severity: medium}
+      - {id: po-005, title: Volume fails to mount,         severity: high}
+  - id: cicd
+    name: CI/CD Pipeline
+    lab: cicd
+    stage: 9
+    status: planned
+    summary: Jenkins, a local registry, Trivy scans and a deploy-to-cluster pipeline.
+    components: [Jenkins, GitHub integration, Docker Registry, Trivy]
+    topics: [Pipeline stages, Jenkinsfiles, Docker builds, Image scanning, Deployment automation, Rollbacks]
+    incidents: []
+  - id: observability
+    name: Monitoring and Observability
+    lab: observability
+    stage: 8
+    status: planned
+    summary: Prometheus, Grafana and Loki. Off by default to save RAM.
+    components: [Prometheus, Grafana, Loki, Metrics Server, Exporters]
+    topics: [Metrics, Logs, Alerts, Dashboards, Application health]
+    incidents: []
+  - id: security
+    name: Kubernetes Security
+    lab: security
+    stage: 9
+    status: planned
+    summary: RBAC, ServiceAccounts, NetworkPolicies, Kyverno and Trivy.
+    components: [RBAC, ServiceAccounts, NetworkPolicies, Kyverno, Trivy]
+    topics: [Least privilege, Network isolation, Policy enforcement, Image scanning]
+    incidents:
+      - {id: sec-001, title: Unauthorised API access,      severity: high}
+      - {id: sec-002, title: Overprivileged ServiceAccount, severity: high}
+      - {id: sec-003, title: Network traffic blocked,      severity: medium}
+      - {id: sec-004, title: Vulnerable container image,   severity: high}
+      - {id: sec-005, title: Policy violation,             severity: medium}
