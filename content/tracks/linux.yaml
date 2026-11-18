@@ -1,0 +1,6 @@
+id: linux
+name: Linux
+status: planned
+phase: 5
+description: Shell, processes, services, logs and permissions.
+modules: []

@@ -1,0 +1,59 @@
+# Sample of a fully specified scenario. Status stays "planned" until the
+# Phase 6 engine and the CloudMart lab exist to run it.
+id: k8s-readiness-probe-failure
+name: Readiness Probe Failure
+difficulty: intermediate
+technology: kubernetes
+status: planned
+phase: 6
+description: |
+  INCIDENT: users receive HTTP 503 from CloudMart. The backend Pods are
+  Running but the application is unavailable. Restore the service.
+skills: [Pod troubleshooting, Readiness probes, Deployment configuration, Application health checks]
+initial_state:
+  lab: cloudmart
+  namespace: cloudmart
+inject:
+  - action: patch
+    target: {kind: Deployment, name: backend, namespace: cloudmart}
+    patch_type: json
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/httpGet/path
+        value: /healthz-v2
+  - action: wait
+    target: {kind: Deployment, name: backend, namespace: cloudmart}
+    condition: rollout-started
+symptoms:
+  - "kubectl get pods shows backend Pods 0/1 Running"
+  - "Service backend has no ready endpoints"
+  - "Ingress returns HTTP 503"
+hints:
+  - level: 1
+    kind: direction
+    text: The Pods are running but not receiving traffic. What decides whether a Pod gets traffic?
+  - level: 2
+    kind: resource
+    text: Look at the Pod events with `kubectl describe pod` and at the Deployment's readinessProbe.
+  - level: 3
+    kind: approach
+    text: Compare the probe's HTTP path with the endpoints the backend actually serves (check its logs or /docs).
+validation:
+  - check: rollout_ready
+    target: {kind: Deployment, name: backend, namespace: cloudmart}
+    description: All backend replicas are Ready
+  - check: endpoints_exist
+    target: {service: backend, namespace: cloudmart}
+    description: The backend Service has ready endpoints
+  - check: http
+    target: {url: "http://localhost:8080/api/health"}
+    expect: {status: 200}
+    description: CloudMart answers through the Ingress
+root_cause: The readiness probe checks /healthz-v2, a path the backend doesn't serve, so Pods never become Ready.
+resolution: |
+  Set readinessProbe.httpGet.path back to /api/health:
+    kubectl -n cloudmart edit deployment backend
+  then confirm with: kubectl -n cloudmart rollout status deployment/backend
+reset:
+  strategy: namespace
+  lab: cloudmart

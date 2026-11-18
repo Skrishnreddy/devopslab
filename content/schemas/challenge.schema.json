@@ -1,0 +1,336 @@
+{
+  "$defs": {
+    "Hint": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "title": "Level",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "direction",
+            "resource",
+            "approach"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "kind",
+        "text"
+      ],
+      "title": "Hint",
+      "type": "object"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "description": "One declarative action the engine performs (Phase 6).",
+      "properties": {
+        "action": {
+          "enum": [
+            "apply",
+            "patch",
+            "delete",
+            "scale",
+            "exec",
+            "wait"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "target": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Target",
+          "type": "object"
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Manifest"
+        },
+        "patch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Patch"
+        },
+        "patch_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "json",
+                "merge",
+                "strategic"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Patch Type"
+        },
+        "condition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition"
+        },
+        "timeout_seconds": {
+          "default": 120,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "Step",
+      "type": "object"
+    },
+    "Validation": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "enum": [
+            "rollout_ready",
+            "pod_ready",
+            "http",
+            "endpoints_exist",
+            "resource_field",
+            "command"
+          ],
+          "title": "Check",
+          "type": "string"
+        },
+        "target": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Target",
+          "type": "object"
+        },
+        "expect": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "default": {},
+          "title": "Expect",
+          "type": "object"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check",
+        "description"
+      ],
+      "title": "Validation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "difficulty": {
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "title": "Difficulty",
+      "type": "string"
+    },
+    "technology": {
+      "enum": [
+        "kubernetes",
+        "docker",
+        "linux",
+        "terraform",
+        "jenkins",
+        "ansible",
+        "security"
+      ],
+      "title": "Technology",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "available",
+        "planned"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "phase": {
+      "default": 6,
+      "title": "Phase",
+      "type": "integer"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "skills": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Skills",
+      "type": "array"
+    },
+    "initial_state": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Lab source + namespace the scenario starts from",
+      "title": "Initial State"
+    },
+    "inject": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "title": "Inject",
+      "type": "array"
+    },
+    "symptoms": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Symptoms",
+      "type": "array"
+    },
+    "hints": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Hint"
+      },
+      "title": "Hints",
+      "type": "array"
+    },
+    "validation": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Validation"
+      },
+      "title": "Validation",
+      "type": "array"
+    },
+    "root_cause": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Root Cause"
+    },
+    "resolution": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resolution"
+    },
+    "reset": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reset"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "difficulty",
+    "technology",
+    "status",
+    "description"
+  ],
+  "title": "Challenge",
+  "type": "object"
+}

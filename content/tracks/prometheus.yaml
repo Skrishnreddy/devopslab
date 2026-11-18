@@ -1,0 +1,6 @@
+id: prometheus
+name: Prometheus
+status: planned
+phase: 7
+description: Metrics, PromQL and alerting.
+modules: []

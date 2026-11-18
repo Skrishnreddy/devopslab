@@ -1,72 +1,169 @@
 # DevOpsLab
 
-Your personal DevOps and Kubernetes engineering playground, running entirely on
-your Mac. Two ways to use it:
+**Learn. Build. Break. Troubleshoot. Master.**
+
+DevOpsLab is an open-source, local-first DevOps engineering playground. It runs a
+real Kubernetes cluster on your laptop and gives you two ways to learn:
 
 - **Learn Mode**: structured, topic-by-topic modules from beginner to advanced.
-- **Engineer Mode**: pre-deployed projects with real incidents, a terminal,
-  hints, and a reset button.
+- **Engineer Mode**: production-style projects you deploy, explore, break,
+  troubleshoot and reset.
 
-## Quick start (macOS, Apple silicon)
+> **Status: Phase 1 (Foundation) of 10.** The infrastructure, dashboard, auth,
+> health checks and learning catalog work today. Terminals, CloudMart, lessons
+> and the troubleshooting engine are being built next. Everything not built yet
+> is labelled **Planned** in the UI. See the [roadmap](#roadmap).
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+## Features
+
+| Available now (Phase 1) | Planned |
+|---|---|
+| One-command local cluster: Colima + 3-node kind, ingress, metrics-server | Browser terminals (Linux, Kubernetes, Docker) in isolated pods · Phase 2 |
+| Live infrastructure health: Colima, Docker Engine, kind, kubectl, Helm, Kubernetes API | Deployments, services, logs, events · Phase 3 |
+| Live cluster summary, nodes and pods | CloudMart microservices app + lab reset · Phase 4 |
+| Learn Mode catalog (15 tracks, 20 Kubernetes modules) with progress tracking | Lessons, exercises with automatic checks, quizzes · Phase 5 |
+| Projects and troubleshooting catalogs | 15 Kubernetes troubleshooting scenarios with 3 progressive hints · Phase 6 |
+| Local login, session cookies, Origin checks | Prometheus, Grafana, Loki · Phase 7 |
+| Content as YAML with JSON Schemas | Trivy, Kyverno, RBAC, NetworkPolicies · Phase 8 |
+| SQLite with migrations (PostgreSQL-ready) | Jenkins, Argo CD · Phase 9 · optional AI assistant (Ollama) |
+
+DevOpsLab never shows sample data: if Colima or the cluster is down, the
+dashboard says so and tells you the command that fixes it.
+
+## Supported platforms
+
+| Platform | Status |
+|---|---|
+| macOS on Apple Silicon (M1–M4), 16 GB RAM | Primary target |
+| macOS on Intel | Should work, untested |
+| Linux | Planned (provider interface ready) |
+| Windows (WSL2) | Planned |
+
+Docker Desktop is **not** required.
+
+## Install (macOS, Apple Silicon)
+
+Prerequisites: [Homebrew](https://brew.sh), about 15 GB free disk.
 
 ```bash
-make prereqs     # colima, docker, kind, kubectl, helm, node, python via Homebrew
-make up          # Colima VM + 3-node kind cluster + ingress + metrics-server (~3-5 min first time)
-make install     # backend venv + frontend packages
-make dev         # API on 127.0.0.1:8000, dashboard on http://127.0.0.1:5173
+git clone <your fork or this repo> devopslab && cd devopslab
+make prereqs   # colima, docker CLI, kind, kubectl, helm, node, python
+make up        # Colima VM + kind cluster + add-ons (first run ~5 min)
+make install   # backend venv + frontend packages
+make dev       # API on 127.0.0.1:8000, UI on 127.0.0.1:5173
 ```
 
-`make status` shows cluster health, `make down` stops the VM (keeps the
-cluster), `make destroy` removes everything. `make help` lists all targets.
+`make dev` prints a login link. Open it, or run `make token` in another
+terminal to print it again. The token is stored in `~/.devopslab/login-token`
+(readable only by you).
 
-The cluster uses its own kubeconfig at `~/.kube/devopslab`, so it never
-changes your default `kubectl` context. To use it from your own shell:
+Other commands: `make status`, `make down` (stop the VM, keep the cluster),
+`make destroy` (remove everything), `make help`.
+
+The cluster uses its own kubeconfig at `~/.kube/devopslab`, so your default
+`kubectl` context is untouched:
 
 ```bash
 export KUBECONFIG=~/.kube/devopslab
 kubectl get nodes
 ```
 
-## Resource budget (16 GB MacBook Air)
+### Resource budget (16 GB Mac)
 
-The Colima VM is the lab's whole budget; edit `infra/config.env` to change it.
+| Component | Budget |
+|---|---|
+| macOS | 4 GB |
+| Colima VM (`COLIMA_MEMORY=6` in `infra/config.env`) | 6 GB |
+| DevOpsLab UI + API | 0.5 GB |
+| Browser + editor | 2 GB |
+| Headroom | 3.5 GB |
 
-| Component                  | Budget  | Where              |
-|----------------------------|---------|--------------------|
-| macOS                      | 4 GB    | host               |
-| Colima VM (kind + add-ons) | 6 GB    | `COLIMA_MEMORY=6`  |
-|  ↳ cluster + system pods   | ~4 GB   | inside VM          |
-|  ↳ CloudMart (Stage 4)     | ~1.5 GB | inside VM          |
-| DevOpsLab UI + API         | ~0.5 GB | host               |
-| Browser + VS Code          | ~2 GB   | host               |
-| Headroom                   | ~3.5 GB |                    |
+Heavy components (monitoring, Jenkins, Argo CD) are deployed on demand only.
 
-Monitoring (Prometheus, Grafana, Loki) is **off by default**. When Stage 8
-lands, raise `COLIMA_MEMORY` to 8 before turning it on.
+## Architecture
 
-## Layout
+```mermaid
+flowchart LR
+  user([Learner]) -->|127.0.0.1 only| ui[React UI]
+  ui -->|/api/v1 + WebSocket| api[FastAPI]
+  api --> db[(SQLite)]
+  api --> content[[content/ YAML]]
+  api -->|fixed CLI calls| tools[colima · docker · kind · helm]
+  api -->|scoped kubeconfig| k8s
+  subgraph vm[Colima VM]
+    subgraph k8s[kind cluster]
+      labs[lab namespaces]
+      term[terminal sandbox pods]
+    end
+  end
+```
+
+More: [architecture](docs/architecture.md) · [implementation plan](docs/implementation-plan.md) ·
+[API](docs/api.md) · [database](docs/database-schema.md) ·
+[terminal security](docs/security/terminal.md) · [lab isolation](docs/security/lab-isolation.md)
+
+## Repository layout
 
 ```
-infra/          Stage 1: Colima + kind config, setup scripts
-backend/        FastAPI: cluster status, progress (SQLite), lab engine, terminal
-frontend/       React + TypeScript + Tailwind dashboard
-labs/           Engineer Mode projects (kustomize) and challenge definitions
-docs/           Architecture and build stages
+backend/   FastAPI app, SQLAlchemy models, Alembic migrations, providers, tests
+frontend/  React + TypeScript + Vite + Tailwind UI and tests
+content/   tracks, projects, challenges (YAML) + JSON Schemas
+infra/     Colima/kind config and setup scripts
+docs/      architecture, API, security, screenshots
 ```
 
-## Build stages
+## Screenshots
 
-| Stage | Deliverable                          | Status |
-|-------|--------------------------------------|--------|
-| 1     | Local Kubernetes infrastructure      | ✅     |
-| 2     | DevOpsLab dashboard                  | ✅     |
-| 3     | Integrated terminal (xterm.js)       |        |
-| 4     | Pre-deployed CloudMart               |        |
-| 5     | Kubernetes learning modules          |        |
-| 6     | Troubleshooting challenge engine     |        |
-| 7     | AI hints (Ollama, optional)          |        |
-| 8     | Prometheus and Grafana               |        |
-| 9     | Jenkins and Argo CD                  |        |
-| 10    | kubeadm multi-node environment       |        |
+| Learn Mode | Troubleshooting catalog |
+|---|---|
+| ![Learn](docs/screenshots/learn.png) | ![Troubleshooting](docs/screenshots/troubleshooting.png) |
 
-See [docs/architecture.md](docs/architecture.md) for how the pieces fit.
+## Development
+
+```bash
+make install
+make dev            # hot reload for both
+make test           # backend lint + tests, frontend type check + lint + tests + build, ShellCheck
+make schemas        # regenerate content JSON Schemas
+make secrets-scan   # gitleaks (brew install gitleaks)
+```
+
+Configuration: copy `.env.example` to `backend/.env`.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Dashboard shows tools as **missing** | `make prereqs`, then restart `make dev` so PATH is picked up |
+| Colima **not running** / Docker Engine unreachable | `make up` |
+| `colima start` fails on first run | `colima delete -p devopslab` then `make up`; check free disk |
+| Cluster unreachable after reboot | `make up` (resumes the VM; the cluster is kept) |
+| Login says the token is invalid | `make token` and use the new link; tokens rotate if the file was deleted |
+| Port 5173 or 8000 already in use | Stop the other process or set `DEVOPSLAB_PORT` / Vite `--port` |
+| Mac feels slow | `make down` when you're not using the lab; lower `COLIMA_MEMORY` |
+
+## Roadmap
+
+| Phase | Deliverable | Status |
+|---|---|---|
+| 1 | Foundation: repo, backend, frontend, DB, auth, dashboard, health checks | ✅ |
+| 2 | Terminal (xterm.js, isolated pods) | |
+| 3 | Kubernetes explorer | |
+| 4 | CloudMart + lab management | |
+| 5 | Learning engine | |
+| 6 | Troubleshooting engine | |
+| 7 | Observability | |
+| 8 | DevSecOps | |
+| 9 | CI/CD and GitOps | |
+| 10 | Public release | |
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) (content can be added with YAML only),
+[SECURITY.md](SECURITY.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## License
+
+[Apache License 2.0](LICENSE).

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Installs the CLI tools DevOpsLab needs via Homebrew. Safe to re-run.
+# shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "$0")/lib.sh"
 [[ "$(uname -s)" == "Darwin" ]] || warn "Written for macOS; on Linux install these tools yourself."
 need brew

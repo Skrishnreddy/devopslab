@@ -1,0 +1,40 @@
+id: k8s-service-selector-mismatch
+name: Service Selector Mismatch
+difficulty: beginner
+technology: kubernetes
+status: planned
+phase: 6
+description: |
+  INCIDENT: the CloudMart storefront loads but every product request fails.
+  The backend Pods look healthy.
+skills: [Services, Labels and selectors, Endpoints]
+initial_state:
+  lab: cloudmart
+  namespace: cloudmart
+inject:
+  - action: patch
+    target: {kind: Service, name: backend, namespace: cloudmart}
+    patch_type: merge
+    patch: '{"spec": {"selector": {"app": "backend-api"}}}'
+symptoms:
+  - "Frontend shows 'Could not load products'"
+  - "kubectl get endpoints backend shows <none>"
+hints:
+  - level: 1
+    kind: direction
+    text: The Pods are fine. Check how traffic finds them.
+  - level: 2
+    kind: resource
+    text: Compare `kubectl get endpoints backend` with the Service's selector.
+  - level: 3
+    kind: approach
+    text: Put the Service selector next to the Pod labels (`kubectl get pods --show-labels`) and look for a mismatch.
+validation:
+  - check: endpoints_exist
+    target: {service: backend, namespace: cloudmart}
+    description: The backend Service selects the backend Pods
+root_cause: The backend Service selects app=backend-api, but the Pods are labelled app=backend.
+resolution: kubectl -n cloudmart patch service backend -p '{"spec":{"selector":{"app":"backend"}}}'
+reset:
+  strategy: namespace
+  lab: cloudmart

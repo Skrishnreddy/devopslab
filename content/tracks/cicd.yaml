@@ -1,0 +1,6 @@
+id: cicd
+name: CI/CD
+status: planned
+phase: 9
+description: Build, test, scan and deploy pipelines.
+modules: []

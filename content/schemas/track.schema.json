@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "Module": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "order": {
+          "minimum": 1,
+          "title": "Order",
+          "type": "integer"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "beginner",
+            "intermediate",
+            "advanced"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "task": {
+          "description": "The practical task the learner performs",
+          "title": "Task",
+          "type": "string"
+        },
+        "skills": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Skills",
+          "type": "array"
+        },
+        "phase": {
+          "default": 5,
+          "description": "Build phase that delivers the full lesson",
+          "title": "Phase",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "order",
+        "title",
+        "level",
+        "task"
+      ],
+      "title": "Module",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "available",
+        "planned"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "phase": {
+      "title": "Phase",
+      "type": "integer"
+    },
+    "modules": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Module"
+      },
+      "title": "Modules",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "description",
+    "status",
+    "phase"
+  ],
+  "title": "Track",
+  "type": "object"
+}

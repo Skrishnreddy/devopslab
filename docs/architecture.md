@@ -1,62 +1,87 @@
-# Architecture
+# DevOpsLab architecture
+
+DevOpsLab is a local-first engineering playground. A FastAPI backend on the
+host talks to real infrastructure (Colima, Docker Engine, kind, Kubernetes) and
+serves a React UI. Learners work inside isolated lab environments: sandbox
+pods and namespaces in the lab cluster, never the host.
+
+## System context
+
+```mermaid
+flowchart LR
+  user([Learner]) -->|browser, 127.0.0.1 only| ui[React UI<br/>Vite · Tailwind · xterm.js]
+  ui -->|REST /api/v1 + WebSocket<br/>session cookie| api[FastAPI backend]
+  api --> db[(SQLite<br/>SQLAlchemy)]
+  api --> content[[content/<br/>YAML tracks, projects, challenges]]
+  api -->|CLI, fixed argv| tools[colima · docker · kind · helm]
+  api -->|Kubernetes API<br/>scoped kubeconfig| k8s
+  api -.->|opt-in, consent| ai[AI provider<br/>Ollama / configurable]
+  subgraph vm[Colima VM · Docker Engine]
+    subgraph k8s[kind cluster 'cloudmart']
+      sys[devopslab-system]
+      term[devopslab-terminal<br/>sandbox pods]
+      labs[lab-* namespaces<br/>resettable]
+      addons[ingress-nginx · metrics-server]
+    end
+  end
+```
+
+## Backend modules
 
 ```
- Browser (127.0.0.1:5173)
-   React + TS + Tailwind ── xterm.js (Stage 3)
-            │  /api (Vite proxy, HTTP + WebSocket)
-            ▼
- FastAPI (127.0.0.1:8000)
-   routers/cluster   read-only cluster view (kubernetes client)
-   routers/learn     tracks, modules, progress  ── SQLite
-   routers/engineer  projects, lab deploy/reset ── services/lab_engine
-   routers/terminal  WebSocket ⇄ exec into sandbox pods (Stage 3)
-            │  ~/.kube/devopslab, context kind-cloudmart
-            ▼
- Colima VM (vz, 4 CPU / 6 GB)
-   kind cluster "cloudmart": 1 control plane + 2 workers
-     ingress-nginx, metrics-server
-     devopslab-system     lab internals
-     devopslab-terminal   terminal sandbox pods
-     cloudmart, …         resettable project namespaces (Stage 4+)
+backend/app/
+  core/        config, errors (one JSON error shape), security helpers
+  db/          SQLAlchemy models, engine/session, Alembic migrations
+  auth/        AuthProvider interface, LocalTokenAuth, session dependency
+  providers/   pluggable interfaces with one implementation each:
+    runtime.py    ContainerRuntime    -> ColimaRuntime
+    cluster.py    ClusterProvider     -> KindCluster
+    terminal.py   TerminalProvider    -> (Phase 2) KubeExecTerminal
+    labs.py       LabProvisioner      -> NamespaceLabProvisioner
+    ai.py         AIProvider          -> (planned) Ollama, OpenAI-compatible
+  content/     Pydantic models for content + loader (validates on startup)
+  api/v1/      HTTP routers; thin, call providers and db
 ```
 
-## Principles
+Providers are selected in `core/config.py` so a Linux or Windows runtime,
+a k3d/minikube cluster, or a hosted multi-user lab provisioner can be added
+without touching routers.
 
-1. **Loopback only.** Backend and Vite bind to 127.0.0.1. Ingress host ports
-   are bound to 127.0.0.1 in `infra/kind/cluster.yaml`.
-2. **No host shell.** The terminal never spawns a process on the Mac.
-3. **Resettable by namespace.** Breaking a lab never means rebuilding the
-   cluster.
-4. **Content as data.** Tracks, projects and challenges are YAML, so adding a
-   module or incident doesn't need code changes.
+## Content is data
 
-## Stage 3: terminal design
+Educational content lives in `content/` at the repo root, not in the backend:
 
-Each terminal tab is a WebSocket from xterm.js to
-`/api/terminal/{profile}/ws`. The backend creates (or reuses) a pod in
-`devopslab-terminal` and bridges the socket to the Kubernetes exec stream with
-the Python client's `stream()`. Nothing runs on the host.
+```
+content/
+  schemas/      JSON Schemas generated from the Pydantic models (make schemas)
+  tracks/       one YAML per technology: modules, levels, lessons, exercises
+  projects/     Engineer Mode project catalog
+  challenges/   troubleshooting scenarios, one YAML each
+```
 
-| Tab        | Pod image             | Access                                                         |
-|------------|-----------------------|----------------------------------------------------------------|
-| Linux      | Ubuntu + systemd      | Its own container only; systemctl/journalctl work inside it    |
-| Kubernetes | kubectl, helm, k9s    | ServiceAccount `lab-learner`: full rights in lab namespaces, read-only cluster-wide, no access to `devopslab-*` or `kube-system` writes |
-| Docker     | Docker CLI + rootless dind sidecar | Talks to the sidecar daemon, never to Colima's Docker socket |
+The backend validates everything at startup and refuses to start on invalid
+content, printing the file and field at fault. Contributors add modules or
+challenges with YAML only. See `CONTRIBUTING.md`.
 
-Pods get CPU/memory limits (about 250m / 256Mi each) and are deleted after
-30 idle minutes.
+## Runtime topology on a 16 GB Mac
 
-## Stage 4 and 6: labs and challenges
+| Component                       | Budget  | Notes                                  |
+|---------------------------------|---------|----------------------------------------|
+| macOS                           | 4 GB    |                                        |
+| Colima VM (`COLIMA_MEMORY=6`)   | 6 GB    | kind nodes, add-ons, labs              |
+| DevOpsLab UI + API              | 0.5 GB  | host processes                         |
+| Browser + editor                | 2 GB    |                                        |
+| Headroom                        | 3.5 GB  |                                        |
 
-- `labs/<id>/kustomization.yaml` is a project's known-good state.
-- `labs/challenges/*.yaml` define incidents: `inject` (patches applied after a
-  reset), `verify` (checks for "resolved"), `hints` (progressive), and
-  `root_cause` (shown after you pass).
-- Flow: reset lab → inject fault → you investigate in the terminal → hints on
-  request (counted) → verify → record result in SQLite.
+Heavy projects (monitoring, Jenkins, Argo CD) deploy on demand only. The
+backend checks free VM memory before deploying and refuses with a clear message
+when the budget would be exceeded.
 
-## Stage 7: AI hints
+## Security boundaries
 
-Static hints from the challenge YAML come first. Ollama is optional and later:
-it gets the incident, your recent commands and the hint ladder, and is told to
-nudge rather than give the fix.
+- [Terminal security boundaries](security/terminal.md)
+- [Lab isolation](security/lab-isolation.md)
+- Network: backend, Vite and ingress host ports bind to 127.0.0.1 only.
+- Auth: every API and WebSocket requires a session (see `docs/api.md`).
+- AI: off by default; nothing leaves the machine without explicit consent per
+  request.

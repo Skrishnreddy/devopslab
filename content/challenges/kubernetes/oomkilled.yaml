@@ -1,0 +1,7 @@
+id: k8s-oomkilled
+name: OOMKilled
+difficulty: intermediate
+technology: kubernetes
+status: planned
+phase: 6
+description: A container is repeatedly killed for exceeding memory.

@@ -1,0 +1,7 @@
+id: k8s-node-notready
+name: Node NotReady
+difficulty: advanced
+technology: kubernetes
+status: planned
+phase: 6
+description: A worker node reports NotReady and Pods are evicted.

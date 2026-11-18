@@ -1,0 +1,7 @@
+id: k8s-imagepullbackoff
+name: ImagePullBackOff
+difficulty: beginner
+technology: kubernetes
+status: planned
+phase: 6
+description: Pods cannot pull their container image.

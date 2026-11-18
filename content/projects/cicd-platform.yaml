@@ -1,0 +1,18 @@
+id: cicd-platform
+name: CI/CD Platform
+status: planned
+phase: 9
+summary: Jenkins pipeline building images, scanning with Trivy and deploying to the cluster.
+components:
+- Jenkins
+- Git integration
+- Docker image builds
+- Container registry
+- Trivy
+- Deployment pipeline
+topics:
+- Pipelines
+- Jenkinsfiles
+- Image scanning
+- Rollbacks
+challenges: []

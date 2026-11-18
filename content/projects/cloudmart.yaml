@@ -1,0 +1,24 @@
+id: cloudmart
+name: CloudMart
+status: planned
+phase: 4
+summary: 'E-commerce microservices: React storefront, FastAPI API, PostgreSQL, Redis, NGINX Ingress.'
+components:
+- React frontend
+- FastAPI backend
+- PostgreSQL
+- Redis
+- NGINX
+- Services
+- Ingress
+topics:
+- Pods
+- Deployments
+- Services
+- ConfigMaps
+- Secrets
+- Ingress
+- Persistent Volumes
+challenges:
+- k8s-readiness-probe-failure
+- k8s-service-selector-mismatch

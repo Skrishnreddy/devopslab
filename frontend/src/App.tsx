@@ -1,23 +1,38 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
+import { useAuth } from "./lib/auth";
 import Dashboard from "./pages/Dashboard";
-import Learn from "./pages/Learn";
-import Engineer from "./pages/Engineer";
 import Kubernetes from "./pages/Kubernetes";
-import { Terminal, Topic } from "./pages/Placeholders";
+import Learn from "./pages/Learn";
+import Login from "./pages/Login";
+import Projects from "./pages/Projects";
+import Settings from "./pages/Settings";
+import Terminal from "./pages/Terminal";
+import Topic from "./pages/Topic";
+import Troubleshooting from "./pages/Troubleshooting";
+
+function RequireAuth() {
+  const { me, checking } = useAuth();
+  if (checking) return <div className="p-6 text-ink-400">Loading…</div>;
+  return me ? <Outlet /> : <Navigate to="/login" replace />;
+}
 
 export default function App() {
   return (
     <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="learn" element={<Learn />} />
-        <Route path="engineer" element={<Engineer />} />
-        <Route path="troubleshoot" element={<Engineer incidentsOnly />} />
-        <Route path="kubernetes" element={<Kubernetes />} />
-        <Route path="topic/:id" element={<Topic />} />
-        <Route path="terminal" element={<Terminal />} />
-        <Route path="*" element={<Topic />} />
+      <Route path="login" element={<Login />} />
+      <Route element={<RequireAuth />}>
+        <Route element={<Layout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="learn" element={<Learn />} />
+          <Route path="kubernetes" element={<Kubernetes />} />
+          <Route path="topics/:id" element={<Topic />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="troubleshooting" element={<Troubleshooting />} />
+          <Route path="terminal" element={<Terminal />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
       </Route>
     </Routes>
   );

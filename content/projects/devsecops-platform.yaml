@@ -1,0 +1,16 @@
+id: devsecops-platform
+name: DevSecOps Platform
+status: planned
+phase: 8
+summary: Image scanning, admission policies, RBAC and network isolation.
+components:
+- Trivy
+- Kyverno
+- RBAC
+- NetworkPolicies
+- Container security policies
+topics:
+- Least privilege
+- Policy as code
+- Vulnerability scanning
+challenges: []

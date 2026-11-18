@@ -1,0 +1,189 @@
+id: kubernetes
+name: Kubernetes
+status: available
+phase: 1
+description: From cluster architecture to production support, on a real kind cluster.
+modules:
+- id: k8s-01-architecture
+  order: 1
+  title: Kubernetes Architecture
+  level: beginner
+  task: Explore the cluster
+  skills:
+  - Cluster components
+  - kubectl basics
+  phase: 5
+- id: k8s-02-pods
+  order: 2
+  title: Pods
+  level: beginner
+  task: Create and delete Pods
+  skills:
+  - Pods
+  - kubectl run
+  phase: 5
+- id: k8s-03-replicasets
+  order: 3
+  title: ReplicaSets
+  level: beginner
+  task: Maintain replicas
+  skills:
+  - ReplicaSets
+  - Self-healing
+  phase: 5
+- id: k8s-04-deployments
+  order: 4
+  title: Deployments
+  level: beginner
+  task: Deploy an application
+  skills:
+  - Deployments
+  - Rollouts
+  phase: 5
+- id: k8s-05-services
+  order: 5
+  title: Services
+  level: beginner
+  task: Fix connectivity
+  skills:
+  - Services
+  - Endpoints
+  - DNS
+  phase: 5
+- id: k8s-06-ingress
+  order: 6
+  title: Ingress
+  level: intermediate
+  task: Configure routing
+  skills:
+  - Ingress
+  - NGINX
+  phase: 5
+- id: k8s-07-configmaps
+  order: 7
+  title: ConfigMaps
+  level: intermediate
+  task: Change application configuration
+  skills:
+  - ConfigMaps
+  phase: 5
+- id: k8s-08-secrets
+  order: 8
+  title: Secrets
+  level: intermediate
+  task: Manage credentials
+  skills:
+  - Secrets
+  phase: 5
+- id: k8s-09-storage
+  order: 9
+  title: Storage
+  level: intermediate
+  task: Configure PV and PVC
+  skills:
+  - PersistentVolumes
+  - PVCs
+  - StorageClasses
+  phase: 5
+- id: k8s-10-statefulsets
+  order: 10
+  title: StatefulSets
+  level: intermediate
+  task: Deploy PostgreSQL
+  skills:
+  - StatefulSets
+  - Headless Services
+  phase: 5
+- id: k8s-11-probes
+  order: 11
+  title: Probes
+  level: intermediate
+  task: Fix unhealthy Pods
+  skills:
+  - Readiness probes
+  - Liveness probes
+  phase: 5
+- id: k8s-12-scheduling
+  order: 12
+  title: Scheduling
+  level: intermediate
+  task: Configure node placement
+  skills:
+  - Taints
+  - Tolerations
+  - Affinity
+  phase: 5
+- id: k8s-13-hpa
+  order: 13
+  title: HPA
+  level: intermediate
+  task: Scale the application
+  skills:
+  - HPA
+  - metrics-server
+  - Requests and limits
+  phase: 5
+- id: k8s-14-rbac
+  order: 14
+  title: RBAC
+  level: advanced
+  task: Configure permissions
+  skills:
+  - Roles
+  - RoleBindings
+  - ServiceAccounts
+  phase: 5
+- id: k8s-15-networkpolicies
+  order: 15
+  title: NetworkPolicies
+  level: advanced
+  task: Control traffic
+  skills:
+  - NetworkPolicies
+  phase: 5
+- id: k8s-16-helm
+  order: 16
+  title: Helm
+  level: advanced
+  task: Package applications
+  skills:
+  - Helm charts
+  - Values
+  phase: 5
+- id: k8s-17-monitoring
+  order: 17
+  title: Monitoring
+  level: advanced
+  task: Build dashboards
+  skills:
+  - Prometheus
+  - Grafana
+  phase: 5
+- id: k8s-18-gitops
+  order: 18
+  title: GitOps
+  level: advanced
+  task: Deploy using Argo CD
+  skills:
+  - Argo CD
+  - GitOps
+  phase: 5
+- id: k8s-19-security
+  order: 19
+  title: Security
+  level: advanced
+  task: Scan and secure containers
+  skills:
+  - Trivy
+  - Kyverno
+  - Pod Security
+  phase: 5
+- id: k8s-20-production-support
+  order: 20
+  title: Production Support
+  level: advanced
+  task: Resolve incidents
+  skills:
+  - Incident response
+  - Troubleshooting
+  phase: 5

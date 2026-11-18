@@ -1,0 +1,6 @@
+DevOpsLab
+Copyright 2026 The DevOpsLab Authors
+
+This product is licensed under the Apache License, Version 2.0.
+Third-party dependencies are listed in backend/requirements.txt and
+frontend/package.json and remain under their own licenses.

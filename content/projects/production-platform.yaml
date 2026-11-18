@@ -1,0 +1,24 @@
+id: production-platform
+name: Production Kubernetes Platform
+status: planned
+phase: 6
+summary: Stateful and batch workloads with autoscaling, RBAC and network policies.
+components:
+- Deployments
+- StatefulSets
+- DaemonSets
+- Jobs
+- CronJobs
+- PV/PVC
+- ConfigMaps
+- Secrets
+- HPA
+- RBAC
+- NetworkPolicies
+topics:
+- Scheduling
+- Requests and limits
+- Probes
+- Autoscaling
+- Rolling updates
+challenges: []

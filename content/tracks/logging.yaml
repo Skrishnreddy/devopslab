@@ -1,0 +1,6 @@
+id: logging
+name: ELK / Loki
+status: planned
+phase: 7
+description: Centralised logging and querying.
+modules: []

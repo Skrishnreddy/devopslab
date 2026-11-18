@@ -1,0 +1,6 @@
+id: aws
+name: AWS
+status: planned
+phase: 10
+description: Core AWS services for DevOps engineers.
+modules: []

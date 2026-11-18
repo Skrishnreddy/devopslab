@@ -1,0 +1,6 @@
+id: git
+name: Git and GitHub
+status: planned
+phase: 5
+description: Branching, merging, pull requests and workflows.
+modules: []

@@ -1,0 +1,6 @@
+id: grafana
+name: Grafana
+status: planned
+phase: 7
+description: Dashboards and visualisation.
+modules: []

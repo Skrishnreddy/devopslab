@@ -1,0 +1,64 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "available",
+        "planned"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "phase": {
+      "title": "Phase",
+      "type": "integer"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "components": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Components",
+      "type": "array"
+    },
+    "topics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Topics",
+      "type": "array"
+    },
+    "challenges": {
+      "default": [],
+      "description": "Challenge ids that run against this project",
+      "items": {
+        "type": "string"
+      },
+      "title": "Challenges",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "status",
+    "phase",
+    "summary",
+    "components",
+    "topics"
+  ],
+  "title": "Project",
+  "type": "object"
+}

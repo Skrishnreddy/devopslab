@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Stop the lab. Default: stop the VM but keep the cluster (fast restart).
 # --destroy: delete the kind cluster and the Colima profile entirely.
+# shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "$0")/lib.sh"
 if [[ "${1:-}" == "--destroy" ]]; then
   info "Deleting kind cluster '$CLUSTER_NAME'"

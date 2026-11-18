@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Stage 1: start the Colima VM and the kind cluster, then install cluster add-ons.
 # Idempotent: re-running skips whatever already exists.
+# shellcheck source=SCRIPTDIR/lib.sh
 source "$(dirname "$0")/lib.sh"
 for t in colima docker kind kubectl helm; do need "$t"; done
 

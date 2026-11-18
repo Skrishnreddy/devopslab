@@ -1,0 +1,18 @@
+id: monitoring-platform
+name: Monitoring Platform
+status: planned
+phase: 7
+summary: Prometheus, Grafana and Loki with application metrics and alerting.
+components:
+- Prometheus
+- Grafana
+- Loki
+- Metrics Server
+- Application metrics
+- Alerting
+topics:
+- Metrics
+- Logs
+- Alerts
+- Dashboards
+challenges: []

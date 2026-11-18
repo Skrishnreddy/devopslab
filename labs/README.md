@@ -1,18 +1,18 @@
 # Labs
 
-Each Engineer Mode project is a folder here, deployed with `kubectl apply -k`.
+Known-good Kubernetes manifests for Engineer Mode projects, one folder per lab,
+deployed with `kubectl apply -k`. Filled in from Phase 4 (CloudMart).
 
 ```
 labs/<lab-id>/
-  kustomization.yaml     # known-good state of the project
-  namespace.yaml         # labelled devopslab.io/resettable: "true"
-  ...manifests
+  kustomization.yaml
+  namespace.yaml      # labelled devopslab.io/resettable: "true"
+  ...
 ```
 
-The lab engine (`backend/app/services/lab_engine.py`) resets a lab by deleting
-only its resettable namespaces and re-applying the kustomization. It refuses to
-touch any namespace without that label, so `kube-system`, `ingress-nginx` and
-the lab's own system namespaces are never wiped.
+The lab provisioner (`backend/app/providers/labs.py`) resets a lab by deleting
+only namespaces that carry the resettable label (never `kube-system`,
+`ingress-nginx` or `devopslab-*`) and re-applying the kustomization. See
+[docs/security/lab-isolation.md](../docs/security/lab-isolation.md).
 
-`cloudmart/` is filled in during Stage 4. `challenges/` holds incident
-definitions for the Stage 6 challenge engine.
+Troubleshooting scenarios live in `content/challenges/`.

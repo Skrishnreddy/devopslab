@@ -1,0 +1,6 @@
+id: azure
+name: Azure
+status: planned
+phase: 10
+description: Core Azure services for DevOps engineers.
+modules: []
