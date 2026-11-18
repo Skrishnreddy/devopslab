@@ -94,7 +94,30 @@ recent mistakes and weak areas (from assessments and challenge attempts).
 Assessments update weak areas; the dashboard surfaces them and the teacher
 revisits them.
 
+### Learner profile and teacher memory
+
+The teacher remembers the learner across conversations through a learning
+profile assembled from the database (never from raw chat logs):
+
+| Remembered | Source |
+|---|---|
+| Topics completed | `module_progress`, passed `challenge_attempts` |
+| Concepts the learner struggles with | `weak_areas` (from quizzes, failed exercises, hints used) |
+| Previous mistakes | `assessments.feedback`, failed `exercise_attempts` (summaries) |
+| Exercise performance | `exercise_attempts`, `assessments` scores |
+| Current skill level | per-track level computed from the above |
+| Recommended next lesson | next unfinished module, weighted towards weak areas |
+
+A short profile summary is added to every conversation, and the dashboard's
+"Continue learning" uses the same recommendation. The learner can view and
+reset their profile in Settings.
+
 ### Context awareness
+
+Only **approved** context is ever sent. Available sources: current learning
+module, Kubernetes cluster status (summary, not credentials), the selected
+project's configuration (redacted), terminal output the learner shares,
+previous exercise results and learning progress.
 
 The "Ask AI Teacher" button sends the current context, built server-side:
 
@@ -135,6 +158,7 @@ The learner sees exactly what will be sent before sending.
 | `ai_command_proposals` | `id`, `message_id`, `command`, `risk` (`read`/`write`/`destructive`), `decision` (`pending`/`approved`/`rejected`), `decided_at` |
 | `assessments` | `id`, `user_id`, `kind` (`quiz`/`interview`/`assignment`), `topic`, `score`, `max_score`, `feedback`, `created_at` |
 | `weak_areas` | `user_id`, `topic`, `skill`, `evidence_count`, `last_seen_at` |
+| `learner_profiles` | `user_id`, `track_id`, `level`, `recommended_module_id`, `summary`, `updated_at` |
 
 AI settings (enabled, provider, base URL, role → model map) live in the
 existing `settings` table.
@@ -169,6 +193,8 @@ existing `settings` table.
    request leaves 127.0.0.1 in local mode.
 7. Quizzes are graded, mistakes explained, and weak areas appear on the
    dashboard.
+9. A new conversation knows completed topics, weak areas and the recommended
+   next lesson without the learner repeating them; the learner can reset it.
 8. Turning AI off hides every AI entry point and stops all calls.
 
 ## In Phase 1 already

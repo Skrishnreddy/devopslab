@@ -1,5 +1,19 @@
 # Implementation plan
 
+| Phase | Component | Priority |
+|---|---|---|
+| 1 | Project foundation and architecture | Critical |
+| 2 | Secure interactive terminal | Critical |
+| 3 | Kubernetes integration | Critical |
+| 4 | CloudMart real-world project | High |
+| 5 | Learning engine | Critical |
+| 6 | Troubleshooting challenge engine | Critical |
+| 7 | Monitoring and observability | High |
+| 8 | DevSecOps integration | High |
+| 9 | Ollama AI Teacher and intelligent learning (incl. learner profile and memory) | Critical |
+| 10 | CI/CD and GitOps | High |
+| 11 | Testing, documentation and public GitHub release | Critical |
+
 Each phase ends with: tests green, the app started and checked by hand, logs
 reviewed, docs updated, and a short report (done / not done / next). A failing
 phase is fixed before the next starts. Anything not built is shown in the UI
@@ -100,7 +114,7 @@ model-independent `AIProvider` interface; everything runs locally.
 5. Terminal context and error analysis.
 6. Kubernetes, Docker, Terraform and Linux troubleshooting help.
 7. Quizzes, assignments, mock interviews and assessments.
-8. Learner progress and weak areas.
+8. Learner progress, weak areas, and the learner profile / teacher memory.
 9. Model selection and connection status.
 10. Privacy controls (redaction, consent) and command execution approval.
 
