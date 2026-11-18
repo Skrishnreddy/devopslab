@@ -1,0 +1,49 @@
+# Terminal pods accept no inbound traffic (shells arrive through the API
+# server's exec stream, not the pod network) and have no internet access.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: devopslab-terminal
+  labels: {devopslab.io/managed: "true"}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: devopslab-terminal
+  labels: {devopslab.io/managed: "true"}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+---
+# Kubernetes profile only: the API server and the learner's lab namespaces.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kubernetes-profile-egress
+  namespace: devopslab-terminal
+  labels: {devopslab.io/managed: "true"}
+spec:
+  podSelector:
+    matchLabels: {devopslab.io/terminal-profile: kubernetes}
+  policyTypes: [Egress]
+  egress:
+    # API server (kubernetes.default.svc is DNAT'd to the control plane on 6443).
+    - ports:
+        - {protocol: TCP, port: 6443}
+    - to:
+        - namespaceSelector:
+            matchLabels: {devopslab.io/resettable: "true"}

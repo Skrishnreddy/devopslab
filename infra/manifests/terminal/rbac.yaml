@@ -1,0 +1,55 @@
+# Identity used by the Kubernetes terminal. Never cluster-admin:
+#  - full "edit" rights in lab namespaces (no RBAC changes, no namespace deletion)
+#  - read-only "view" cluster-wide (the built-in view role excludes Secrets)
+#  - read nodes and namespaces so `kubectl get nodes` works
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lab-learner
+  namespace: devopslab-terminal
+  labels: {devopslab.io/managed: "true"}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: lab-learner-edit
+  namespace: lab-playground
+  labels: {devopslab.io/managed: "true"}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: edit}
+subjects:
+  - {kind: ServiceAccount, name: lab-learner, namespace: devopslab-terminal}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: devopslab-lab-learner-view
+  labels: {devopslab.io/managed: "true"}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: view}
+subjects:
+  - {kind: ServiceAccount, name: lab-learner, namespace: devopslab-terminal}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: devopslab-cluster-reader
+  labels: {devopslab.io/managed: "true"}
+rules:
+  - apiGroups: [""]
+    resources: [nodes, namespaces, persistentvolumes]
+    verbs: [get, list, watch]
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses]
+    verbs: [get, list, watch]
+  - apiGroups: [metrics.k8s.io]
+    resources: [nodes, pods]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: devopslab-lab-learner-cluster-reader
+  labels: {devopslab.io/managed: "true"}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: devopslab-cluster-reader}
+subjects:
+  - {kind: ServiceAccount, name: lab-learner, namespace: devopslab-terminal}

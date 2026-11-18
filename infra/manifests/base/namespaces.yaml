@@ -1,5 +1,4 @@
-# Namespaces the lab owns. Anything labelled devopslab.io/resettable=true can be
-# wiped and re-applied by the lab engine without touching the rest of the cluster.
+# Namespaces the lab owns.
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -7,10 +6,24 @@ metadata:
   labels:
     devopslab.io/managed: "true"
 ---
+# Terminal sandbox pods. Pod Security "restricted": non-root, no privilege
+# escalation, all capabilities dropped, RuntimeDefault seccomp.
 apiVersion: v1
 kind: Namespace
 metadata:
   name: devopslab-terminal
   labels:
     devopslab.io/managed: "true"
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+# Where the Kubernetes terminal works by default. Resettable by the lab engine.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lab-playground
+  labels:
+    devopslab.io/managed: "true"
+    devopslab.io/resettable: "true"
+    devopslab.io/lab-id: playground
     pod-security.kubernetes.io/enforce: baseline

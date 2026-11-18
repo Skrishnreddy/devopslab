@@ -1,0 +1,17 @@
+# DevOpsLab terminal
+[ -f /etc/bash.bashrc ] && . /etc/bash.bashrc
+[ -f /usr/share/bash-completion/bash_completion ] && . /usr/share/bash-completion/bash_completion
+export HISTFILE="$HOME/.bash_history" HISTSIZE=5000 HISTCONTROL=ignoredups
+shopt -s histappend
+PROMPT_COMMAND="history -a"
+alias k=kubectl
+complete -o default -F __start_kubectl k 2>/dev/null || true
+case "${DEVOPSLAB_PROFILE:-linux}" in
+  kubernetes) PS1='\[\e[32m\]learner@devopslab\[\e[0m\]:\[\e[36m\]k8s($(kubectl config view --minify -o jsonpath="{..namespace}" 2>/dev/null))\[\e[0m\] \w$ ' ;;
+  *)          PS1='\[\e[32m\]learner@devopslab\[\e[0m\]:\[\e[36m\]\w\[\e[0m\]$ ' ;;
+esac
+if [ -z "${DEVOPSLAB_GREETED:-}" ]; then
+  export DEVOPSLAB_GREETED=1
+  echo "DevOpsLab ${DEVOPSLAB_PROFILE:-linux} terminal. This shell runs in an isolated lab pod, not on your computer."
+  [ "${DEVOPSLAB_PROFILE:-}" = kubernetes ] && echo "Your lab namespace is 'lab-playground'. Try: kubectl get pods -A"
+fi

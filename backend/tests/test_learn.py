@@ -48,7 +48,8 @@ def test_engineer_reads_are_real_and_empty(authed):
 
 def test_features_and_settings(authed):
     f = {x["id"]: x for x in authed.get("/api/v1/features").json()}
-    assert f["dashboard"]["status"] == "available" and f["terminal"]["status"] == "planned"
+    assert f["dashboard"]["status"] == "available" and f["terminal"]["status"] == "available"
+    assert f["ai-teacher"]["status"] == "planned"
     s = authed.get("/api/v1/settings").json()
     assert s["environment"]["kube_context"] == "kind-cloudmart" and s["ai"]["enabled"] is False
     assert s["ai"]["provider"] == "ollama" and s["ai"]["local"] is True and s["ai"]["phase"] == 9

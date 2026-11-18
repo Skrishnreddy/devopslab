@@ -12,18 +12,19 @@ real Kubernetes cluster on your laptop and gives you two ways to learn:
   [Ollama](https://ollama.com). It explains, demonstrates, quizzes you and helps
   you debug, and never runs a command without your approval.
 
-> **Status: Phase 1 (Foundation) of 11.** The infrastructure, dashboard, auth,
-> health checks and learning catalog work today. Terminals, CloudMart, lessons
-> and the troubleshooting engine are being built next. Everything not built yet
+> **Status: Phase 2 (Terminal) of 11.** The infrastructure, dashboard, auth,
+> health checks, learning catalog and browser terminals (Linux, Kubernetes)
+> work today. CloudMart, lessons and the troubleshooting engine are next. Everything not built yet
 > is labelled **Planned** in the UI. See the [roadmap](#roadmap).
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
 ## Features
 
-| Available now (Phase 1) | Planned |
+| Available now (Phases 1–2) | Planned |
 |---|---|
-| One-command local cluster: Colima + 3-node kind, ingress, metrics-server | Browser terminals (Linux, Kubernetes, Docker) in isolated pods · Phase 2 |
+| One-command local cluster: Colima + 3-node kind, ingress, metrics-server | Docker terminal in an isolated engine · Phase 2b |
+| Browser terminals (Linux, Kubernetes) in hardened sandbox pods, with tabs | |
 | Live infrastructure health: Colima, Docker Engine, kind, kubectl, Helm, Kubernetes API | Deployments, services, logs, events · Phase 3 |
 | Live cluster summary, nodes and pods | CloudMart microservices app + lab reset · Phase 4 |
 | Learn Mode catalog (15 tracks, 20 Kubernetes modules) with progress tracking | Lessons, exercises with automatic checks, quizzes · Phase 5 |
@@ -54,7 +55,7 @@ Prerequisites: [Homebrew](https://brew.sh), about 15 GB free disk.
 ```bash
 git clone <your fork or this repo> devopslab && cd devopslab
 make prereqs   # colima, docker CLI, kind, kubectl, helm, node, python
-make up        # Colima VM + kind cluster + add-ons (first run ~5 min)
+make up        # Colima VM + kind cluster + add-ons + terminal image (first run ~8 min)
 make install   # backend venv + frontend packages
 make dev       # API on 127.0.0.1:8000, UI on 127.0.0.1:5173
 ```
@@ -149,6 +150,8 @@ Configuration: copy `.env.example` to `backend/.env`.
 | Login says the token is invalid | `make token` and use the new link; tokens rotate if the file was deleted |
 | Port 5173 or 8000 already in use | Stop the other process or set `DEVOPSLAB_PORT` / Vite `--port` |
 | Mac feels slow | `make down` when you're not using the lab; lower `COLIMA_MEMORY`; use a smaller Ollama model |
+| Terminal says `ErrImageNeverPull` or `ImagePullBackOff` | `make images` (builds the terminal image and loads it into the cluster) |
+| Terminal says the cluster isn't reachable | `make up` |
 | Dashboard shows Ollama not reachable | Optional until Phase 9. Install with `brew install ollama`, then `ollama serve` |
 
 ## Roadmap
@@ -156,7 +159,7 @@ Configuration: copy `.env.example` to `backend/.env`.
 | Phase | Deliverable | Status |
 |---|---|---|
 | 1 | Foundation: repo, backend, frontend, DB, auth, dashboard, health checks | ✅ |
-| 2 | Terminal (xterm.js, isolated pods) | |
+| 2 | Terminal (xterm.js, isolated pods): Linux + Kubernetes | ✅ (Docker: 2b) |
 | 3 | Kubernetes explorer | |
 | 4 | CloudMart + lab management | |
 | 5 | Learning engine | |

@@ -19,7 +19,7 @@ FEATURES = [
     ("infra-health", "Infrastructure health", "available", 1),
     ("kubernetes-pods", "Pods and nodes", "available", 1),
     ("learn-catalog", "Learning catalog and progress", "available", 1),
-    ("terminal", "Integrated terminal", "planned", 2),
+    ("terminal", "Integrated terminal (Linux, Kubernetes)", "available", 2),
     ("kubernetes-explorer", "Deployments, services, logs, events", "planned", 3),
     ("labs", "Lab management (deploy, reset)", "planned", 4),
     ("cloudmart", "CloudMart project", "planned", 4),
