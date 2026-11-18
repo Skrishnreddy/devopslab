@@ -33,7 +33,8 @@ COMPONENT_LABEL = "devopslab.io/component"
 SESSION_LABEL = "devopslab.io/terminal-session"
 PROFILE_LABEL = "devopslab.io/terminal-profile"
 OWNER_LABEL = "devopslab.io/owner"
-SUPPORTED: tuple[Profile, ...] = ("linux", "kubernetes")
+SUPPORTED: tuple[Profile, ...] = ("linux", "kubernetes", "docker")
+POD_PROFILES: tuple[Profile, ...] = ("linux", "kubernetes")  # the docker profile runs in the Docker VM
 
 
 class TerminalError(Exception):
@@ -52,7 +53,7 @@ def pod_name(session_id: str) -> str:
 
 def build_pod(session_id: str, user_id: int, profile: Profile) -> dict:
     """The sandbox pod. Every field here is asserted by tests against the spec."""
-    if profile not in SUPPORTED:
+    if profile not in POD_PROFILES:
         raise TerminalError("unsupported_profile", f"The {profile} terminal is not available yet", 400)
     kube = profile == "kubernetes"
     volumes = [
@@ -148,13 +149,14 @@ class Stream(Protocol):
 
 
 class PodBackend(Protocol):
-    """The Kubernetes operations the manager needs; faked in tests."""
+    """Where sandboxes run (kind pods, or containers in the Docker VM); faked in tests."""
 
-    def create(self, manifest: dict) -> None: ...
+    def create(self, session_id: str, user_id: int, profile: Profile) -> None: ...
     def wait_ready(self, name: str, timeout: float) -> None: ...
     def delete(self, name: str) -> None: ...
     def list_sessions(self) -> list[str]: ...
     def exec_shell(self, name: str, loop: asyncio.AbstractEventLoop) -> Stream: ...
+    def on_reap(self, active_sessions: int) -> None: ...
 
 
 # --------------------------------------------------------------------------
@@ -219,7 +221,8 @@ class KubePodBackend:
     def _core(self) -> client.CoreV1Api:
         return client.CoreV1Api(self._api_factory())
 
-    def create(self, manifest: dict) -> None:
+    def create(self, session_id: str, user_id: int, profile: Profile) -> None:
+        manifest = build_pod(session_id, user_id, profile)
         try:
             self._core().create_namespaced_pod(NAMESPACE, manifest, _request_timeout=10)
         except ApiException as e:
@@ -269,13 +272,18 @@ class KubePodBackend:
         )
         return ExecStream(ws, loop)
 
+    def on_reap(self, active_sessions: int) -> None:
+        return None
+
 
 # --------------------------------------------------------------------------
 # Manager: session lifecycle, limits, timeouts, orphan cleanup
 # --------------------------------------------------------------------------
 class TerminalManager:
-    def __init__(self, backend: PodBackend, clock=time.time):
-        self.backend = backend
+    def __init__(self, backends: PodBackend | dict[str, PodBackend], clock=time.time):
+        # One backend for every profile, or a map profile -> backend.
+        self.backends: dict[str, PodBackend] = (
+            backends if isinstance(backends, dict) else dict.fromkeys(SUPPORTED, backends))
         self.clock = clock
         self.sessions: dict[str, Session] = {}
         self._lock = asyncio.Lock()
@@ -302,8 +310,9 @@ class TerminalManager:
                         created_at=self.clock(), last_activity=self.clock())
             self.sessions[sid] = s
         try:
-            await asyncio.to_thread(self.backend.create, build_pod(sid, user_id, profile))
-            await asyncio.to_thread(self.backend.wait_ready, s.pod, settings.terminal_start_timeout_seconds)
+            backend = self.backend_for(s)
+            await asyncio.to_thread(backend.create, sid, user_id, profile)
+            await asyncio.to_thread(backend.wait_ready, s.pod, settings.terminal_start_timeout_seconds)
             s.status = "ready"
         except Exception as e:
             # Never leave a half-started pod behind, and report the real reason.
@@ -329,9 +338,15 @@ class TerminalManager:
             except Exception as e:
                 log.warning("couldn't record close of %s: %s", s.id, e)
 
+    def backend_for(self, s: Session) -> PodBackend:
+        return self.backends[s.profile]
+
+    def _unique_backends(self) -> list[PodBackend]:
+        return list({id(b): b for b in self.backends.values()}.values())
+
     async def _delete_pod(self, s: Session) -> None:
         try:
-            await asyncio.to_thread(self.backend.delete, s.pod)
+            await asyncio.to_thread(self.backend_for(s).delete, s.pod)
         except Exception as e:
             log.warning("couldn't delete pod %s: %s", s.pod, e)
 
@@ -354,17 +369,27 @@ class TerminalManager:
         for sid in [k for k, v in self.sessions.items() if v.status in {"closed", "failed"}
                     and now - v.last_activity > 3600]:
             self.sessions.pop(sid, None)
+        for b in self._unique_backends():  # e.g. stop the Docker VM when it's no longer used
+            active = sum(1 for s in self.sessions.values()
+                         if s.status in {"starting", "ready"} and self.backend_for(s) is b)
+            try:
+                await asyncio.to_thread(b.on_reap, active)
+            except Exception as e:
+                log.warning("terminal backend housekeeping failed: %s", e)
         return closed
 
     async def reap_orphans(self) -> int:
         """Delete terminal pods this process doesn't know about (e.g. after a restart)."""
         known = {s.id for s in self.sessions.values() if s.status in {"starting", "ready"}}
-        orphans = [sid for sid in await asyncio.to_thread(self.backend.list_sessions) if sid and sid not in known]
-        for sid in orphans:
-            await asyncio.to_thread(self.backend.delete, pod_name(sid))
-        if orphans:
-            log.info("deleted %d orphaned terminal pod(s)", len(orphans))
-        return len(orphans)
+        total = 0
+        for b in self._unique_backends():
+            orphans = [sid for sid in await asyncio.to_thread(b.list_sessions) if sid and sid not in known]
+            for sid in orphans:
+                await asyncio.to_thread(b.delete, pod_name(sid))
+            total += len(orphans)
+        if total:
+            log.info("deleted %d orphaned terminal sandbox(es)", total)
+        return total
 
     async def close_all(self) -> None:
         for s in list(self.sessions.values()):

@@ -56,7 +56,7 @@ export default function TerminalPage() {
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col">
-      <PageHeader title="Terminal" subtitle="Real shells in disposable sandbox pods inside the lab cluster, never on your Mac.">
+      <PageHeader title="Terminal" subtitle="Real shells in disposable sandboxes, never on your Mac.">
         <div className="flex flex-wrap gap-2">
           {profiles.map((p) => {
             const Icon = ICON[p.id];
@@ -79,7 +79,9 @@ export default function TerminalPage() {
       {error && <div className="mb-4"><ErrorBox error={error} title="Terminal error" /></div>}
       {starting && (
         <p className="mb-3 text-sm text-ink-400" role="status">
-          Starting a {LABEL[starting]} sandbox pod… (usually a few seconds; the first start after <code>make up</code> can take longer)
+          {starting === "docker"
+            ? "Starting the Docker VM and your Docker sandbox… (about a minute; the very first time it also builds the sandbox image, a few minutes)"
+            : `Starting a ${LABEL[starting]} sandbox pod… (usually a few seconds)`}
         </p>
       )}
 
@@ -108,6 +110,7 @@ export default function TerminalPage() {
             {["Runs in the lab cluster, never on your Mac. No host Docker socket or host files.",
               "Non-root, all capabilities dropped, read-only root filesystem, CPU and memory limits.",
               "Linux: no cluster access and no network. Kubernetes: kubectl scoped to the lab-playground namespace, read-only elsewhere, never cluster-admin.",
+              "Docker: your own rootless Docker engine in a separate small VM that starts on demand and stops after 10 idle minutes. None of your Mac's folders are mounted, and it can't reach your Mac's local services.",
               "Needs your login. Idle sessions close after 30 minutes and every session ends after 4 hours."].map((t) => (
               <li key={t} className="flex gap-2"><Lock className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" />{t}</li>
             ))}

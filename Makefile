@@ -18,6 +18,12 @@ up: ## Start Colima + kind cluster + ingress + metrics-server
 images: ## Build the terminal image and load it into the cluster (make up does this too)
 	@$(S)/images.sh
 
+docker-vm-up: ## Start the Docker terminal's VM (the backend also starts it on demand)
+	@$(S)/docker-vm.sh up
+
+docker-vm-down: ## Stop the Docker terminal's VM (frees ~2 GB)
+	@$(S)/docker-vm.sh down
+
 down: ## Stop the Colima VM (cluster kept)
 	@$(S)/down.sh
 
@@ -71,5 +77,5 @@ monitoring-on: ## Planned (Phase 7); raise COLIMA_MEMORY to 8 first
 monitoring-off: ## Remove monitoring to free RAM
 	@$(S)/monitoring.sh off
 
-.PHONY: help prereqs up images down destroy status install backend frontend dev token schemas test test-backend \
+.PHONY: help prereqs up images docker-vm-up docker-vm-down down destroy status install backend frontend dev token schemas test test-backend \
 	test-frontend lint-shell secrets-scan monitoring-on monitoring-off

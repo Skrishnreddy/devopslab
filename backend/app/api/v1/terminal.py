@@ -21,7 +21,7 @@ from ...core.errors import AppError
 from ...db.models import TerminalSession
 from ...db.session import get_db
 from ...providers import registry
-from ...providers.terminal import SUPPORTED, Profile, TerminalError
+from ...providers.terminal import Profile, TerminalError
 
 log = logging.getLogger("devopslab.terminal")
 router = APIRouter(prefix="/terminal", tags=["terminal"])
@@ -31,8 +31,8 @@ PROFILES = [
      "description": "Ubuntu shell with common tools. No cluster access."},
     {"id": "kubernetes", "name": "Kubernetes", "available": True,
      "description": "kubectl and helm, scoped to the lab-playground namespace. Read-only elsewhere."},
-    {"id": "docker", "name": "Docker", "available": False, "phase": 2,
-     "description": "Planned: needs an isolated Docker engine per session."},
+    {"id": "docker", "name": "Docker", "available": True,
+     "description": "Your own Docker engine in a separate Docker VM (starts on demand, +2 GB RAM while in use)."},
 ]
 
 
@@ -68,8 +68,6 @@ def list_sessions(p: Principal = Depends(current_principal)):
 
 @router.post("/sessions", status_code=201)
 async def open_session(body: OpenBody, p: Principal = Depends(current_principal), db: DB = Depends(get_db)):
-    if body.profile not in SUPPORTED:
-        raise AppError(400, "unsupported_profile", f"The {body.profile} terminal is planned, not available yet")
     mgr = registry.terminal()
     try:
         s = await mgr.open(p.user.id, body.profile)
@@ -119,7 +117,8 @@ async def stream(ws: WebSocket, sid: str):
         return
 
     try:
-        shell = await asyncio.to_thread(mgr.backend.exec_shell, session.pod, asyncio.get_running_loop())
+        shell = await asyncio.to_thread(mgr.backend_for(session).exec_shell, session.pod,
+                                        asyncio.get_running_loop())
     except Exception as e:
         log.warning("exec into %s failed: %s", session.pod, e)
         await ws.send_text(json.dumps({"type": "status", "state": "closed", "reason": f"Couldn't attach: {e}"}))

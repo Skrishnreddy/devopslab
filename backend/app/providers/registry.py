@@ -24,5 +24,7 @@ def ai() -> AIProvider:
 
 @cache
 def terminal() -> TerminalManager:
-    kind = cluster()
-    return TerminalManager(KubePodBackend(api_factory=kind._api))  # type: ignore[attr-defined]
+    from .docker_terminal import DockerVMBackend
+
+    pods = KubePodBackend(api_factory=cluster()._api)  # type: ignore[attr-defined]
+    return TerminalManager({"linux": pods, "kubernetes": pods, "docker": DockerVMBackend()})

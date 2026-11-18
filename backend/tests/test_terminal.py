@@ -51,7 +51,7 @@ def test_kubernetes_pod_uses_scoped_service_account():
     assert spec["automountServiceAccountToken"] is True
 
 
-def test_docker_profile_is_not_available_yet():
+def test_docker_profile_never_runs_in_the_cluster():
     with pytest.raises(TerminalError) as e:
         build_pod("t-0123456789abcdef", 1, "docker")
     assert e.value.code == "unsupported_profile"
@@ -157,10 +157,9 @@ def test_terminal_api_requires_login(client):
     assert client.post("/api/v1/terminal/sessions", json={"profile": "linux"}).status_code == 401
 
 
-def test_profiles_mark_docker_planned(authed):
+def test_all_three_profiles_available(authed):
     profiles = {p["id"]: p for p in authed.get("/api/v1/terminal/profiles").json()}
-    assert profiles["linux"]["available"] and profiles["kubernetes"]["available"]
-    assert profiles["docker"]["available"] is False
+    assert all(profiles[p]["available"] for p in ("linux", "kubernetes", "docker"))
 
 
 def test_open_list_close_session(authed, fake_terminals):
@@ -171,17 +170,16 @@ def test_open_list_close_session(authed, fake_terminals):
     assert [x["id"] for x in authed.get("/api/v1/terminal/sessions").json()] == [s["id"]]
     assert authed.delete(f"/api/v1/terminal/sessions/{s['id']}").status_code == 204
     assert authed.get("/api/v1/terminal/sessions").json() == []
-    assert fake_terminals.backend.pods == {}
+    assert fake_terminals.backends["linux"].pods == {}
     db = next(get_db())
     row = db.get(TerminalSession, s["id"])
     assert row.closed_at is not None and row.close_reason == "Closed by you"
     db.close()
 
 
-def test_docker_profile_rejected(authed):
-    r = authed.post("/api/v1/terminal/sessions", json={"profile": "docker"})
-    assert r.status_code == 400
-    assert r.json()["error"]["code"] == "unsupported_profile"
+def test_unknown_profile_rejected(authed):
+    r = authed.post("/api/v1/terminal/sessions", json={"profile": "windows"})
+    assert r.status_code == 422
 
 
 def test_session_limit(authed, monkeypatch):
@@ -247,7 +245,7 @@ def test_websocket_bridges_input_output_and_resize(authed, fake_terminals):
         ws.send_text("not json")  # ignored
         ws.send_text(json.dumps({"type": "input", "data": "x"}))
         assert ws.receive_bytes() == b"echo:x"
-    stream = fake_terminals.backend.streams[0]
+    stream = fake_terminals.backends["linux"].streams[0]
     assert stream.resizes == [(120, 40)]
     assert stream.written == [b"ls\r", b"x"]
     # Closing the tab detaches; the sandbox stays until it's closed or reaped.
@@ -258,6 +256,6 @@ def test_websocket_reports_when_shell_exits(authed, fake_terminals):
     sid = _open(authed)
     with authed.websocket_connect(WS.format(sid), headers={"Origin": ORIGIN}) as ws:
         ws.receive_text()
-        fake_terminals.backend.streams[0].feed(None)
+        fake_terminals.backends["linux"].streams[0].feed(None)
         msg = json.loads(ws.receive_text())
     assert msg["state"] == "closed" and "exited" in msg["reason"]
