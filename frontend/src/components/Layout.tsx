@@ -21,7 +21,7 @@ const NAV: NavItem[] = [
   { to: "/topics/devsecops", label: "DevSecOps", icon: Shield, planned: true },
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/troubleshooting", label: "Troubleshooting", icon: LifeBuoy },
-  { to: "/terminal", label: "Terminal", icon: SquareTerminal, planned: true },
+  { to: "/terminal", label: "Terminal", icon: SquareTerminal },
   { to: "/ai-teacher", label: "AI Teacher", icon: Bot, planned: true },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

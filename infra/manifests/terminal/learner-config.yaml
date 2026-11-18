@@ -1,0 +1,25 @@
+# kubeconfig for the Kubernetes terminal: in-cluster API, the projected
+# ServiceAccount token, and lab-playground as the default namespace.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: terminal-kubeconfig
+  namespace: devopslab-terminal
+  labels: {devopslab.io/managed: "true"}
+data:
+  config: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+      - name: devopslab
+        cluster:
+          server: https://kubernetes.default.svc
+          certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    users:
+      - name: lab-learner
+        user:
+          tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    contexts:
+      - name: lab
+        context: {cluster: devopslab, user: lab-learner, namespace: lab-playground}
+    current-context: lab

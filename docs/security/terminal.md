@@ -31,27 +31,37 @@ and its tests must meet.
    - *Linux*: Ubuntu-based image, non-root. Learners practise `ps`, `top`,
      `journalctl` etc. inside the container. Exercises that need real systemd
      run in a dedicated systemd lab (Phase 5), never privileged by default.
-   - *Kubernetes*: kubectl, helm, k9s. Uses ServiceAccount
-     `lab-learner-<session>` bound by RoleBinding to the selected lab
-     namespace(s) only, plus a read-only ClusterRole for nodes, namespaces and
-     events. **No cluster-admin, ever.** No access to `kube-system` writes,
-     `devopslab-*` namespaces, Secrets outside the lab, or RBAC objects unless
-     a module explicitly grants a scoped Role.
-   - *Docker/DevOps*: Docker CLI talks to a rootless `docker:dind-rootless`
-     sidecar inside the same pod. The host or Colima Docker socket is **never
-     mounted**.
-5. **Network**: a default-deny NetworkPolicy in `devopslab-terminal`; egress
-   allowed only to cluster DNS, the Kubernetes API (Kubernetes profile), and
-   the lab namespace. Internet egress is off unless a module turns it on
-   (e.g. image pulls through the dind sidecar).
+   - *Kubernetes*: kubectl and helm. Uses ServiceAccount `lab-learner`
+     (`infra/manifests/terminal/rbac.yaml`): the built-in `edit` role in the
+     lab namespace `lab-playground` only, the built-in `view` role elsewhere
+     (which excludes Secrets), and read-only nodes, namespaces, PVs, storage
+     classes and metrics. **No cluster-admin, ever.** No writes outside lab
+     namespaces, no Secrets outside the lab, no RBAC objects. Phase 4 adds
+     per-lab namespaces with their own RoleBindings.
+   - *Docker/DevOps* (Phase 2b, planned): needs a Docker engine per session.
+     The host or Colima Docker socket is **never mounted**. Rootless
+     docker-in-docker still needs relaxed pod security, so this profile is
+     held back until that trade-off is decided.
+5. **Network**: a default-deny NetworkPolicy in `devopslab-terminal`
+   (`infra/manifests/terminal/networkpolicy.yaml`). Every terminal may reach
+   cluster DNS. The Kubernetes profile may also reach the API server (TCP
+   6443) and pods in resettable lab namespaces. No inbound traffic and no
+   internet. Known limit: the 6443 rule is by port, because the control
+   plane address isn't fixed in kind.
 6. **Authentication**: WebSocket upgrade requires a valid session cookie and
    an `Origin` in the allowlist. Each session id is bound to its user and is
-   not guessable (128-bit random).
-7. **Timeouts**: idle 30 min, absolute 4 h; both close the socket and delete
-   the pod. A reaper deletes orphaned pods on backend start.
+   not guessable (128-bit random). A session belongs to the user who opened
+   it; any other user gets 404.
+7. **Timeouts**: idle 30 min without input, absolute 4 h (also enforced by the
+   pod's `activeDeadlineSeconds`); both close the socket and delete the pod.
+   At most 4 terminals per user. A reaper deletes orphaned pods on backend
+   start, and all terminal pods are deleted when the backend stops. Closing a
+   browser tab only detaches: reopen the Terminal page to get a new shell in
+   the same sandbox, or use **End session** to delete it.
 8. **Exposure**: the WebSocket is served only by the backend on 127.0.0.1.
    No NodePort, LoadBalancer or Ingress for terminals.
-9. **Audit**: session open/close, profile, lab and duration are recorded.
+9. **Audit**: session open/close, profile and close reason are recorded in
+   `terminal_sessions`.
    Keystrokes and output are not stored.
 
 ## Acceptance tests (Phase 2)
@@ -60,6 +70,8 @@ and its tests must meet.
 - WebSocket without a session or with a foreign Origin is rejected (API test).
 - From the Kubernetes terminal: `kubectl auth can-i '*' '*' --all-namespaces`
   is `no`; `kubectl get secrets -n kube-system` is forbidden (cluster test).
-- From the Docker terminal: `docker info` reports the sidecar daemon, not
-  Colima's (cluster test).
+- From the Linux terminal: no service account token is mounted and no
+  internet access (cluster test).
+- From the Docker terminal (Phase 2b): `docker info` reports the sandbox
+  daemon, not Colima's (cluster test).
 - Idle timeout deletes the pod (cluster test with shortened timeout).

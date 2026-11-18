@@ -33,8 +33,9 @@ else
 fi
 kind export kubeconfig --name "$CLUSTER_NAME" >/dev/null
 
-info "Applying lab namespaces"
+info "Applying lab namespaces and terminal sandbox policies"
 k apply -f "$ROOT/infra/manifests/base/"
+k apply -f "$ROOT/infra/manifests/terminal/"
 
 info "Installing ingress-nginx (kind provider)"
 # Pinned. Upstream ingress-nginx is retired; fine for a local lab, Gateway API comes later.
@@ -47,6 +48,8 @@ helm --kube-context "$KCTX" repo update metrics-server >/dev/null
 helm --kube-context "$KCTX" upgrade --install metrics-server metrics-server/metrics-server \
   -n kube-system --set 'args={--kubelet-insecure-tls}' \
   --set resources.requests.memory=64Mi --wait
+
+"$ROOT/infra/scripts/images.sh"
 
 info "Monitoring stays OFF to save RAM. Turn it on later with: make monitoring-on"
 info "Cluster ready. KUBECONFIG=$KUBECONFIG"

@@ -91,7 +91,7 @@ describe("navigation", () => {
       "Dashboard", "Learn", "Linux", "Docker", "Kubernetes", "Terraform", "Jenkins", "Ansible",
       "Monitoring", "DevSecOps", "Projects", "Troubleshooting", "Terminal", "AI Teacher", "Settings",
     ]);
-    expect(within(links[12]).getByText("planned")).toBeInTheDocument();
+    expect(within(links[12]).queryByText("planned")).not.toBeInTheDocument(); // Terminal ships in Phase 2
     expect(within(links[13]).getByText("planned")).toBeInTheDocument();
   });
 });

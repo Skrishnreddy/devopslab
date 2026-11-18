@@ -126,3 +126,16 @@ class Setting(Base):
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     value: Mapped[dict[str, Any]] = mapped_column(default=dict)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
+
+
+class TerminalSession(Base):
+    """Audit record of a terminal sandbox. Keystrokes and output are never stored."""
+
+    __tablename__ = "terminal_sessions"
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    profile: Mapped[str] = mapped_column(String(16))
+    pod: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    closed_at: Mapped[datetime | None] = mapped_column(default=None)
+    close_reason: Mapped[str | None] = mapped_column(String(256), default=None)

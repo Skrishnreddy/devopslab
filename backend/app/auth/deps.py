@@ -29,19 +29,24 @@ def check_origin(request: Request) -> None:
         raise AppError(403, "bad_origin", "Request origin is not allowed")
 
 
-def current_principal(request: Request, db: DB = Depends(get_db)) -> Principal:
-    raw = request.cookies.get(COOKIE)
+def principal_from_cookie(raw: str | None, db: DB) -> Principal:
+    """Resolve a session cookie. Shared by HTTP routes and WebSockets."""
     if not raw:
         raise AppError(401, "unauthorized", "Log in to continue")
     s = db.get(Session, sha256(raw))
     now = datetime.now(UTC)
     if s is None or s.expires_at <= now:
         raise AppError(401, "session_expired", "Your session has expired; log in again")
-    check_origin(request)
-    if now - s.last_seen_at > timedelta(minutes=1):
-        s.last_seen_at = now
-        db.commit()
     user = db.get(User, s.user_id)
     if user is None:
         raise AppError(401, "unauthorized", "Unknown user")
+    if now - s.last_seen_at > timedelta(minutes=1):
+        s.last_seen_at = now
+        db.commit()
     return Principal(user=user, session=s)
+
+
+def current_principal(request: Request, db: DB = Depends(get_db)) -> Principal:
+    principal = principal_from_cookie(request.cookies.get(COOKIE), db)
+    check_origin(request)
+    return principal

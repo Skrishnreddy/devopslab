@@ -5,6 +5,18 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (Phase 2: Terminal)
+- Browser terminals (xterm.js) with tabs, resize, clear, copy/paste, connection status and reconnect.
+- Each terminal is a disposable sandbox pod in `devopslab-terminal`: non-root, all capabilities
+  dropped, read-only root filesystem, seccomp, CPU/memory/storage limits, Pod Security `restricted`,
+  default-deny network policy, no host mounts or Docker socket.
+- Linux profile (no cluster credentials) and Kubernetes profile (`lab-learner` service account:
+  edit in `lab-playground`, read-only elsewhere, never cluster-admin).
+- Terminal API and WebSocket bridge to the Kubernetes exec API with cookie and Origin checks,
+  per-user ownership, 4 sessions per user, 30 min idle and 4 h hard limits, orphan cleanup,
+  and an audit table (no keystrokes stored).
+- `make images` builds the terminal image in Colima and loads it into kind (`make up` runs it).
+
 ### Added (Phase 1: Foundation)
 - Local Kubernetes infrastructure: Colima + 3-node kind cluster, ingress-nginx, metrics-server
   (`make up`), with a 6 GB VM budget and monitoring off by default.

@@ -57,6 +57,15 @@ export interface AppSettings {
   ai: { enabled: boolean; provider: string; base_url: string; local: boolean; status: Availability; phase: number };
 }
 
+export type TerminalProfileId = "linux" | "kubernetes" | "docker";
+export interface TerminalProfile {
+  id: TerminalProfileId; name: string; available: boolean; description: string; phase?: number;
+}
+export interface TerminalSession {
+  id: string; profile: TerminalProfileId; status: "starting" | "ready" | "closed" | "failed"; error: string | null;
+  created_at: number; last_activity: number; idle_timeout_seconds: number; max_seconds: number;
+}
+
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
 }
@@ -102,4 +111,13 @@ export const api = {
   progress: () => req<ProgressSummary>("/progress/summary"),
   activity: (limit = 5) => req<ActivityItem[]>(`/activity/recent?limit=${limit}`),
   settings: () => req<AppSettings>("/settings"),
+  terminalProfiles: () => req<TerminalProfile[]>("/terminal/profiles"),
+  terminalSessions: () => req<TerminalSession[]>("/terminal/sessions"),
+  openTerminal: (profile: TerminalProfileId) =>
+    req<TerminalSession>("/terminal/sessions", { method: "POST", body: JSON.stringify({ profile }) }),
+  closeTerminal: (id: string) => req<void>(`/terminal/sessions/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };
+
+/** WebSocket URL for a terminal session; same origin, so the session cookie goes with it. */
+export const terminalStreamUrl = (id: string, loc: Location = window.location) =>
+  `${loc.protocol === "https:" ? "wss" : "ws"}://${loc.host}/api/v1/terminal/sessions/${encodeURIComponent(id)}/stream`;

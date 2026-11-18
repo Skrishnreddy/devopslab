@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     kubeconfig: Path = Path.home() / ".kube" / "devopslab"
     command_timeout_seconds: float = 5.0
 
+    # Terminal sandboxes (docs/security/terminal.md)
+    terminal_max_seconds: int = 4 * 3600  # hard limit per session (pod activeDeadlineSeconds)
+    terminal_idle_seconds: int = 30 * 60  # closed after this long without input
+    terminal_max_sessions: int = 4  # per user
+    terminal_start_timeout_seconds: float = 90.0
+    terminal_reap_interval_seconds: float = 60.0
+
     # AI Teacher (Phase 9). Local Ollama only until external providers exist.
     ai_enabled: bool = False
     ollama_url: str = "http://127.0.0.1:11434"

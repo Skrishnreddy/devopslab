@@ -20,6 +20,19 @@ def isolated(tmp_path, monkeypatch):
     dbsession.reset_engine()
 
 
+@pytest.fixture(autouse=True)
+def fake_terminals(monkeypatch):
+    """No test talks to a real cluster: terminals use an in-memory pod backend."""
+    from app.providers import registry
+    from app.providers.terminal import TerminalManager
+    from tests.terminal_fakes import FakeBackend
+
+    backend = FakeBackend()
+    mgr = TerminalManager(backend)
+    monkeypatch.setattr(registry, "terminal", lambda: mgr)
+    return mgr
+
+
 @pytest.fixture()
 def client():
     from app.main import create_app
