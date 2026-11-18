@@ -48,7 +48,7 @@ def test_vm_never_mounts_your_home_folder():
 
 
 def test_firewall_blocks_gateway_and_link_local():
-    fw = (REPO / "infra/docker-vm/firewall.sh").read_text()
+    fw = (REPO / "infra/docker-vm/setup.sh").read_text()
     assert '-d "$NET" -j REJECT' in fw  # Lima gateway network forwards to your Mac's localhost
     assert "-d 169.254.0.0/16 -j REJECT" in fw
     assert "DOCKER-USER -j DEVOPSLAB-SANDBOX" in fw
@@ -111,3 +111,45 @@ def test_manager_routes_docker_sessions_to_the_vm_backend():
     d, k = asyncio.run(run())
     assert list(vm.pods) == [d.pod] and list(pods.pods) == [k.pod]
     assert vm.reaps == [1] and pods.reaps == [1]
+
+
+def test_user_namespaces_allowed_only_for_sandboxes():
+    setup = (REPO / "infra/docker-vm/setup.sh").read_text()
+    assert "profile devopslab-sandbox flags=(unconfined)" in setup and "userns," in setup
+    assert "apparmor_restrict_unprivileged_userns=0" not in setup  # never relaxed VM-wide
+    assert dt.build_container(SID, 1)["host_config"]["security_opt"] == ["apparmor=devopslab-sandbox"]
+
+
+class FakeAPI:
+    def __init__(self, outputs):
+        self.outputs, self.scripts = list(outputs), []
+
+    def inspect_container(self, name):
+        return {"State": {"Running": True}}
+
+    def exec_create(self, name, cmd):
+        self.scripts.append(cmd[-1])
+        return {"Id": "x"}
+
+    def exec_start(self, _):
+        return self.outputs.pop(0).encode()
+
+
+def test_ready_only_when_the_inner_docker_engine_answers(monkeypatch):
+    b = dt.DockerVMBackend(runner=Runner())
+    api = FakeAPI(["STARTING", "READY"])
+    monkeypatch.setattr(b, "_api", lambda: api)
+    monkeypatch.setattr(dt.time, "sleep", lambda _: None)
+    b.wait_ready("term-x", 30)
+    assert api.scripts == [dt.READY_CHECK, dt.READY_CHECK]
+
+
+def test_dead_inner_engine_is_reported_with_its_log(monkeypatch):
+    b = dt.DockerVMBackend(runner=Runner())
+    t = [0.0]
+    monkeypatch.setattr(dt.time, "time", lambda: t[0])
+    monkeypatch.setattr(dt.time, "sleep", lambda s: t.__setitem__(0, t[0] + 2))
+    api = FakeAPI(["DEAD", "DEAD", "DEAD", "rootlesskit: operation not permitted"])
+    monkeypatch.setattr(b, "_api", lambda: api)
+    with pytest.raises(TerminalError, match="operation not permitted"):
+        b.wait_ready("term-x", 30)

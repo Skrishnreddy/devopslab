@@ -25,16 +25,18 @@ case "${1:-status}" in
         --vm-type vz --mount-type virtiofs --mount "$SHARE"
     fi
     # Refuse to continue if any other Mac folder is visible inside the VM.
-    if colima ssh -p "$P" -- test -e "$HOME/Library"; then
+    if colima ssh -p "$P" -- test -e "$HOME/Library" 2>/dev/null; then
       colima stop -p "$P" >/dev/null 2>&1 || true
       die "Your home folder is mounted in the Docker VM. Stopped it. Run: colima delete -p $P, then try again."
     fi
-    colima ssh -p "$P" -- sudo sh -s < "$ROOT/infra/docker-vm/firewall.sh"
+    colima ssh -p "$P" -- sudo sh -s < "$ROOT/infra/docker-vm/setup.sh"
     info "Building $IMAGE in the Docker VM (first build takes a few minutes)"
     docker build -q -t "$IMAGE" -f "$ROOT/images/docker-terminal/Dockerfile" "$ROOT/images" >/dev/null
     info "Docker VM ready"
     ;;
   down)
+    save_docker_context
+    trap restore_docker_context EXIT  # `colima stop` resets the global context too
     if running; then info "Stopping Docker VM '$P'"; colima stop -p "$P"; else info "Docker VM '$P' is not running"; fi
     ;;
   status)

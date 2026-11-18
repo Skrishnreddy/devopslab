@@ -2,7 +2,7 @@
 
 The Docker VM (Colima profile `devopslab-docker`) is the isolation boundary:
 nothing from the Mac is mounted into it and a firewall keeps its containers
-away from the Mac's localhost (infra/docker-vm/firewall.sh). Each session is
+away from the Mac's localhost (infra/docker-vm/setup.sh). Each session is
 one container running its own rootless Docker engine, on its own network.
 The backend talks to the VM's Docker API over Colima's local unix socket; no
 shell or PTY is ever started on the host.
@@ -35,6 +35,9 @@ from .terminal import (
 log = logging.getLogger("devopslab.terminal.docker")
 DOCKER_IMAGE = "devopslab/docker-terminal:0.1.0"  # built by infra/scripts/docker-vm.sh
 SCRIPT = REPO_ROOT / "infra" / "scripts" / "docker-vm.sh"
+# `docker version` (unlike `docker info --format`) exits non-zero when the daemon is unreachable.
+READY_CHECK = ('docker version --format "{{.Server.Version}}" >/dev/null 2>&1 && echo READY '
+               '|| { pgrep -f "dockerd|rootlesskit" >/dev/null && echo STARTING || echo DEAD; }')
 
 
 def network_name(session_id: str) -> str:
@@ -61,6 +64,8 @@ def build_container(session_id: str, user_id: int) -> dict:
             # Required by rootless docker-in-docker (nested user namespaces). The
             # learner and their daemon still run as uid 1000; the VM is the boundary.
             "privileged": True,
+            # Allows user namespaces for this container only (infra/docker-vm/setup.sh).
+            "security_opt": ["apparmor=devopslab-sandbox"],
             "binds": [],  # no host paths, no Docker socket
             "mem_limit": "1g",
             "memswap_limit": "1g",
@@ -173,18 +178,25 @@ class DockerVMBackend:
         except DockerException as e:
             raise TerminalError("pod_create_failed", f"Couldn't create the Docker sandbox: {e}") from e
 
+    def _sh(self, api, name: str, script: str) -> str:
+        ex = api.exec_create(name, ["sh", "-c", script])
+        return api.exec_start(ex["Id"]).decode(errors="replace").strip()
+
     def wait_ready(self, name: str, timeout: float) -> None:
+        """Ready means the learner's own Docker engine answers, not just that the container runs."""
         api = self._api()
-        deadline = time.time() + timeout
-        while time.time() < deadline:
+        start = time.time()
+        while time.time() - start < timeout:
             state = api.inspect_container(name)["State"]
             if not state.get("Running"):
                 logs = api.logs(name, tail=5).decode(errors="replace").strip()
                 raise TerminalError("pod_failed", f"Docker sandbox stopped ({state.get('Status')}). {logs}".strip())
-            ex = api.exec_create(name, ["docker", "info", "--format", "{{.ServerVersion}}"])
-            api.exec_start(ex["Id"])
-            if api.exec_inspect(ex["Id"]).get("ExitCode") == 0:
+            out = self._sh(api, name, READY_CHECK)
+            if out.endswith("READY"):
                 return
+            if out.endswith("DEAD") and time.time() - start > 3:
+                log_tail = self._sh(api, name, "tail -n 3 /tmp/dockerd.log 2>/dev/null")
+                raise TerminalError("pod_failed", f"The sandbox's Docker engine failed to start: {log_tail}")
             time.sleep(1)
         raise TerminalError("pod_timeout", f"The sandbox's Docker engine wasn't ready after {int(timeout)}s")
 

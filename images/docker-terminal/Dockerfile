@@ -8,7 +8,7 @@ FROM docker:27.5.1-dind-rootless
 
 USER root
 RUN apk add --no-cache bash bash-completion curl git jq nano vim less procps htop \
-        iproute2 bind-tools ca-certificates tini
+        iproute2 bind-tools ca-certificates tini ncurses
 COPY terminal/bashrc /etc/devopslab/bashrc
 COPY docker-terminal/entrypoint.sh /usr/local/bin/devopslab-entrypoint
 RUN chmod 0755 /usr/local/bin/devopslab-entrypoint \
@@ -17,5 +17,5 @@ RUN chmod 0755 /usr/local/bin/devopslab-entrypoint \
     && chown rootless:rootless /home/rootless/.bashrc /home/rootless/.bash_profile
 
 USER rootless
-ENV DEVOPSLAB_PROFILE=docker
+ENV DEVOPSLAB_PROFILE=docker XDG_RUNTIME_DIR=/run/user/1000 DOCKER_HOST=unix:///run/user/1000/docker.sock
 ENTRYPOINT ["/sbin/tini", "--", "devopslab-entrypoint"]

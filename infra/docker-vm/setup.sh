@@ -1,11 +1,29 @@
 #!/bin/sh
 # Runs as root inside the Docker VM (devopslab-docker) on every `docker-vm.sh up`.
-# Containers may reach the internet (image pulls) and DNS, but nothing on the
+#
+# 1. AppArmor profile `devopslab-sandbox`. Ubuntu 24.04 blocks unprivileged
+#    user namespaces (kernel.apparmor_restrict_unprivileged_userns=1), which
+#    rootless Docker needs. Instead of turning that off for the whole VM, this
+#    profile allows user namespaces only for processes started under it, i.e.
+#    the sandbox containers (docker run --security-opt apparmor=devopslab-sandbox).
+#
+# 2. Firewall. Containers may reach the internet (image pulls) and DNS, but nothing on the
 # VM's own gateway network. On Colima/Lima that gateway forwards to your Mac's
 # localhost, so this is what keeps sandboxes away from the DevOpsLab API,
 # Ollama and the cluster API server. Containers also can't open connections to
 # the VM itself.
 set -eu
+cat > /etc/apparmor.d/devopslab-sandbox <<'PROFILE'
+abi <abi/4.0>,
+include <tunables/global>
+
+profile devopslab-sandbox flags=(unconfined) {
+  userns,
+}
+PROFILE
+apparmor_parser -r -W /etc/apparmor.d/devopslab-sandbox
+echo "apparmor: devopslab-sandbox profile loaded (user namespaces for sandboxes only)"
+
 GW="$(ip route | awk '/^default/ {print $3; exit}')"
 [ -n "$GW" ] || { echo "no default route" >&2; exit 1; }
 NET="${GW%.*}.0/24"

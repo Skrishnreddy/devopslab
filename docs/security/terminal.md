@@ -49,11 +49,14 @@ and its tests must meet.
      - Only an empty folder (`~/.devopslab/docker-vm-share`) is mounted; the
        start script refuses to run if your home folder is visible in the VM.
        No Mac or Colima Docker socket is mounted into any sandbox.
-     - `infra/docker-vm/firewall.sh` (re-applied on every start) rejects
+     - `infra/docker-vm/setup.sh` (re-applied on every start) rejects
        container traffic to the VM's gateway network (on Colima this gateway
        forwards to the Mac's localhost: DevOpsLab API, Ollama, the kind API
        server) and to link-local addresses, and rejects new connections from
        containers to the VM itself. DNS and internet (image pulls) work.
+     - Rootless Docker needs user namespaces, which Ubuntu 24.04 restricts.
+       Instead of lifting that VM-wide, setup.sh loads an AppArmor profile
+       (`devopslab-sandbox`) that allows them only for sandbox containers.
      - Residual risk, accepted: an attacker who escalates from uid 1000 to
        root in the VM could remove the firewall. That needs a kernel or
        container-runtime exploit, and still lands in a disposable VM with no
