@@ -1,7 +1,7 @@
 """In-memory stand-ins for the Kubernetes pod backend."""
 import asyncio
 
-from app.providers.terminal import TerminalError
+from app.providers.terminal import TerminalError, pod_name
 
 
 class FakeStream:
@@ -38,8 +38,11 @@ class FakeBackend:
         self.streams: list[FakeStream] = []
         self.extra_sessions: list[str] = []
 
-    def create(self, manifest: dict) -> None:
-        self.pods[manifest["metadata"]["name"]] = manifest
+    def create(self, session_id: str, user_id: int, profile: str) -> None:
+        name = pod_name(session_id)
+        self.pods[name] = {"metadata": {"name": name, "labels": {"devopslab.io/terminal-session": session_id,
+                                                                 "devopslab.io/terminal-profile": profile}}}
+        self.reaps: list[int] = getattr(self, "reaps", [])
 
     def wait_ready(self, name: str, timeout: float) -> None:
         if self.fail_ready:
@@ -58,3 +61,6 @@ class FakeBackend:
         s = FakeStream(loop)
         self.streams.append(s)
         return s
+
+    def on_reap(self, active_sessions: int) -> None:
+        self.reaps = [*getattr(self, "reaps", []), active_sessions]

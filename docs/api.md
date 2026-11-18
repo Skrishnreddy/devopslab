@@ -45,8 +45,8 @@ Base path `/api/v1`. JSON everywhere. Served on 127.0.0.1 only.
 
 | Phase | Method | Path | Notes |
 |---|---|---|---|
-| 2 | GET | `/terminal/profiles` | linux, kubernetes available; docker planned |
-| 2 | POST | `/terminal/sessions` | `{profile: linux\|kubernetes}` → session (waits until the pod is ready); 409 on limit or pod failure, 503 if the cluster is down |
+| 2 | GET | `/terminal/profiles` | linux, kubernetes, docker |
+| 2 | POST | `/terminal/sessions` | `{profile: linux\|kubernetes\|docker}` → session (waits until the sandbox is ready; docker first starts the Docker VM); 409 on limit or pod failure, 503 if the cluster is down |
 | 2 | GET | `/terminal/sessions` | list own sessions |
 | 2 | DELETE | `/terminal/sessions/{id}` | close + delete pod |
 | 2 | WS | `/terminal/sessions/{id}/stream` | foreign Origin refused at the handshake (HTTP 403); then closes with 4401 (not logged in), 4404 (not found) or 4409 (not ready). Client sends JSON `{type:"input",data}` / `{type:"resize",cols,rows}`; server sends binary output and JSON `{type:"status",state,reason}` |

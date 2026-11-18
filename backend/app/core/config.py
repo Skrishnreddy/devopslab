@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     terminal_max_sessions: int = 4  # per user
     terminal_start_timeout_seconds: float = 90.0
     terminal_reap_interval_seconds: float = 60.0
+    # Docker terminal VM (must match DOCKER_VM_PROFILE in infra/config.env)
+    docker_vm_profile: str = "devopslab-docker"
+    docker_vm_idle_seconds: int = 10 * 60  # stopped this long after the last Docker terminal closes
+    docker_vm_start_timeout_seconds: float = 15 * 60  # first start builds the sandbox image
 
     # AI Teacher (Phase 9). Local Ollama only until external providers exist.
     ai_enabled: bool = False

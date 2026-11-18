@@ -38,10 +38,29 @@ and its tests must meet.
      classes and metrics. **No cluster-admin, ever.** No writes outside lab
      namespaces, no Secrets outside the lab, no RBAC objects. Phase 4 adds
      per-lab namespaces with their own RoleBindings.
-   - *Docker/DevOps* (Phase 2b, planned): needs a Docker engine per session.
-     The host or Colima Docker socket is **never mounted**. Rootless
-     docker-in-docker still needs relaxed pod security, so this profile is
-     held back until that trade-off is decided.
+   - *Docker* (Phase 2b): runs **outside the lab cluster**, in a separate
+     small Colima VM (`devopslab-docker`, 2 CPU / 2 GB) that starts when a
+     Docker terminal opens and stops 10 minutes after the last one closes.
+     Each session is a container from `docker:27.5.1-dind-rootless` with its
+     own rootless Docker engine and its own Docker network; the learner and
+     their daemon run as uid 1000. Limits: 1 CPU, 1 GiB memory, 1024 pids. The
+     container needs `--privileged` (nested user namespaces), so **the VM is
+     the isolation boundary**, chosen over a privileged pod in the cluster:
+     - Only an empty folder (`~/.devopslab/docker-vm-share`) is mounted; the
+       start script refuses to run if your home folder is visible in the VM.
+       No Mac or Colima Docker socket is mounted into any sandbox.
+     - `infra/docker-vm/setup.sh` (re-applied on every start) rejects
+       container traffic to the VM's gateway network (on Colima this gateway
+       forwards to the Mac's localhost: DevOpsLab API, Ollama, the kind API
+       server) and to link-local addresses, and rejects new connections from
+       containers to the VM itself. DNS and internet (image pulls) work.
+     - Rootless Docker needs user namespaces, which Ubuntu 24.04 restricts.
+       Instead of lifting that VM-wide, setup.sh loads an AppArmor profile
+       (`devopslab-sandbox`) that allows them only for sandbox containers.
+     - Residual risk, accepted: an attacker who escalates from uid 1000 to
+       root in the VM could remove the firewall. That needs a kernel or
+       container-runtime exploit, and still lands in a disposable VM with no
+       Mac folders and no cluster credentials.
 5. **Network**: a default-deny NetworkPolicy in `devopslab-terminal`
    (`infra/manifests/terminal/networkpolicy.yaml`). Every terminal may reach
    cluster DNS. The Kubernetes profile may also reach the API server (TCP
@@ -72,6 +91,8 @@ and its tests must meet.
   is `no`; `kubectl get secrets -n kube-system` is forbidden (cluster test).
 - From the Linux terminal: no service account token is mounted and no
   internet access (cluster test).
-- From the Docker terminal (Phase 2b): `docker info` reports the sandbox
-  daemon, not Colima's (cluster test).
+- From the Docker terminal (Phase 2b): `docker info` reports the sandbox's
+  rootless daemon, not the VM's; `docker run --rm hello-world` works; Mac
+  localhost (`host.lima.internal:8000`) and the VM gateway are unreachable;
+  no Mac folders are visible; the VM stops after the idle period.
 - Idle timeout deletes the pod (cluster test with shortened timeout).

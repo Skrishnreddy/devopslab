@@ -17,6 +17,12 @@ versioning: [SemVer](https://semver.org/).
   and an audit table (no keystrokes stored).
 - `make images` builds the terminal image in Colima and loads it into kind (`make up` runs it).
 
+### Added (Phase 2b: Docker terminal)
+- Docker terminal with its own rootless Docker engine per session, running in a separate small
+  Colima VM (`devopslab-docker`) that starts on demand and stops after 10 idle minutes
+  (`make docker-vm-up` / `make docker-vm-down`). No Mac folders mounted; a firewall keeps
+  sandboxes away from the Mac's localhost services and the VM itself.
+
 ### Added (Phase 1: Foundation)
 - Local Kubernetes infrastructure: Colima + 3-node kind cluster, ingress-nginx, metrics-server
   (`make up`), with a 6 GB VM budget and monitoring off by default.

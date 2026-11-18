@@ -13,8 +13,8 @@ real Kubernetes cluster on your laptop and gives you two ways to learn:
   you debug, and never runs a command without your approval.
 
 > **Status: Phase 2 (Terminal) of 11.** The infrastructure, dashboard, auth,
-> health checks, learning catalog and browser terminals (Linux, Kubernetes)
-> work today. CloudMart, lessons and the troubleshooting engine are next. Everything not built yet
+> health checks, learning catalog and browser terminals (Linux, Kubernetes,
+> Docker) work today. CloudMart, lessons and the troubleshooting engine are next. Everything not built yet
 > is labelled **Planned** in the UI. See the [roadmap](#roadmap).
 
 ![Dashboard](docs/screenshots/dashboard.png)
@@ -23,9 +23,9 @@ real Kubernetes cluster on your laptop and gives you two ways to learn:
 
 | Available now (Phases 1–2) | Planned |
 |---|---|
-| One-command local cluster: Colima + 3-node kind, ingress, metrics-server | Docker terminal in an isolated engine · Phase 2b |
-| Browser terminals (Linux, Kubernetes) in hardened sandbox pods, with tabs | |
-| Live infrastructure health: Colima, Docker Engine, kind, kubectl, Helm, Kubernetes API | Deployments, services, logs, events · Phase 3 |
+| One-command local cluster: Colima + 3-node kind, ingress, metrics-server | Deployments, services, logs, events · Phase 3 |
+| Browser terminals in hardened sandboxes, with tabs: Linux, Kubernetes, and Docker (own engine in a separate on-demand VM) | |
+| Live infrastructure health: Colima, Docker Engine, kind, kubectl, Helm, Kubernetes API | |
 | Live cluster summary, nodes and pods | CloudMart microservices app + lab reset · Phase 4 |
 | Learn Mode catalog (15 tracks, 20 Kubernetes modules) with progress tracking | Lessons, exercises with automatic checks, quizzes · Phase 5 |
 | Projects and troubleshooting catalogs | 15 Kubernetes troubleshooting scenarios with 3 progressive hints · Phase 6 |
@@ -64,7 +64,7 @@ make dev       # API on 127.0.0.1:8000, UI on 127.0.0.1:5173
 terminal to print it again. The token is stored in `~/.devopslab/login-token`
 (readable only by you).
 
-Other commands: `make status`, `make down` (stop the VM, keep the cluster),
+Other commands: `make status`, `make down` (stop the VMs, keep the cluster),
 `make destroy` (remove everything), `make help`.
 
 The cluster uses its own kubeconfig at `~/.kube/devopslab`, so your default
@@ -81,6 +81,7 @@ kubectl get nodes
 |---|---|
 | macOS | 4 GB |
 | Colima VM (`COLIMA_MEMORY=6` in `infra/config.env`) | 6 GB |
+| Docker terminal VM, only while a Docker terminal is open (`DOCKER_VM_MEMORY=2`) | 2 GB from headroom |
 | DevOpsLab UI + API | 0.5 GB |
 | Browser + editor | 2 GB |
 | Headroom | 3.5 GB |
@@ -152,6 +153,7 @@ Configuration: copy `.env.example` to `backend/.env`.
 | Mac feels slow | `make down` when you're not using the lab; lower `COLIMA_MEMORY`; use a smaller Ollama model |
 | Terminal says `ErrImageNeverPull` or `ImagePullBackOff` | `make images` (builds the terminal image and loads it into the cluster) |
 | Terminal says the cluster isn't reachable | `make up` |
+| Docker terminal says it couldn't start the Docker VM | Run `make docker-vm-up` to see the full output; `make docker-vm-down` frees its 2 GB |
 | Dashboard shows Ollama not reachable | Optional until Phase 9. Install with `brew install ollama`, then `ollama serve` |
 
 ## Roadmap
@@ -159,7 +161,7 @@ Configuration: copy `.env.example` to `backend/.env`.
 | Phase | Deliverable | Status |
 |---|---|---|
 | 1 | Foundation: repo, backend, frontend, DB, auth, dashboard, health checks | ✅ |
-| 2 | Terminal (xterm.js, isolated pods): Linux + Kubernetes | ✅ (Docker: 2b) |
+| 2 | Terminal (xterm.js, isolated sandboxes): Linux, Kubernetes, Docker | ✅ |
 | 3 | Kubernetes explorer | |
 | 4 | CloudMart + lab management | |
 | 5 | Learning engine | |

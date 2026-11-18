@@ -8,10 +8,16 @@ alias k=kubectl
 complete -o default -F __start_kubectl k 2>/dev/null || true
 case "${DEVOPSLAB_PROFILE:-linux}" in
   kubernetes) PS1='\[\e[32m\]learner@devopslab\[\e[0m\]:\[\e[36m\]k8s($(kubectl config view --minify -o jsonpath="{..namespace}" 2>/dev/null))\[\e[0m\] \w$ ' ;;
+  docker)     PS1='\[\e[32m\]learner@devopslab\[\e[0m\]:\[\e[36m\]docker\[\e[0m\] \w$ ' ;;
   *)          PS1='\[\e[32m\]learner@devopslab\[\e[0m\]:\[\e[36m\]\w\[\e[0m\]$ ' ;;
 esac
 if [ -z "${DEVOPSLAB_GREETED:-}" ]; then
   export DEVOPSLAB_GREETED=1
-  echo "DevOpsLab ${DEVOPSLAB_PROFILE:-linux} terminal. This shell runs in an isolated lab pod, not on your computer."
+  if [ "${DEVOPSLAB_PROFILE:-}" = docker ]; then
+    echo "DevOpsLab docker terminal. This shell runs in a sandbox on a separate Docker VM, not on your computer."
+    echo "You have your own Docker engine here. Try: docker run --rm hello-world"
+  else
+    echo "DevOpsLab ${DEVOPSLAB_PROFILE:-linux} terminal. This shell runs in an isolated lab pod, not on your computer."
+  fi
   [ "${DEVOPSLAB_PROFILE:-}" = kubernetes ] && echo "Your lab namespace is 'lab-playground'. Try: kubectl get pods -A"
 fi
