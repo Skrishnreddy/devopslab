@@ -60,4 +60,4 @@ Base path `/api/v1`. JSON everywhere. Served on 127.0.0.1 only.
 | 6 | POST | `/challenges/attempts/{id}/hints` | reveals next hint (max 3) |
 | 6 | POST | `/challenges/attempts/{id}/validate` | runs validation conditions |
 | 6 | POST | `/challenges/attempts/{id}/solution` | marks `solution_viewed`, returns resolution |
-| AI | POST | `/ai/explain` | requires `consent: true` per request when provider is external |
+| 9 | | `/ai/*` | AI Teacher: status, models, conversations (SSE), command proposals, assessments. See `docs/ai-teacher.md` |

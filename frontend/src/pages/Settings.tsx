@@ -34,10 +34,14 @@ export default function Settings() {
         </dl>}
         <p className="mt-3 text-xs text-ink-400">Change these with DEVOPSLAB_* variables in backend/.env (see .env.example).</p>
       </Card>
-      <Card title="AI assistant" action={<PlannedBadge phase={6} />}>
-        <p className="text-sm text-ink-200">
-          Optional. You'll choose a provider (Ollama locally, or your own API). Nothing from your terminal, code or
-          cluster is sent to an external provider without asking you first.
+      <Card title="AI Teacher" action={settings.data && <PlannedBadge phase={settings.data.ai.phase} />}>
+        {settings.data && <dl className="mb-3 grid grid-cols-[10rem_1fr] gap-y-2 text-sm">
+          <dt className="text-ink-400">Provider</dt><dd>{settings.data.ai.provider} ({settings.data.ai.local ? "local" : "external"})</dd>
+          <dt className="text-ink-400">Endpoint</dt><dd className="font-mono">{settings.data.ai.base_url}</dd>
+        </dl>}
+        <p className="text-sm text-ink-400">
+          Model selection, the on/off switch and privacy controls arrive with the AI Teacher. It runs on your machine;
+          nothing is sent to an external service unless you turn one on.
         </p>
       </Card>
       <Card title="Features">

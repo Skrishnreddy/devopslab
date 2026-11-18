@@ -15,7 +15,7 @@ flowchart LR
   api --> content[[content/<br/>YAML tracks, projects, challenges]]
   api -->|CLI, fixed argv| tools[colima · docker · kind · helm]
   api -->|Kubernetes API<br/>scoped kubeconfig| k8s
-  api -.->|opt-in, consent| ai[AI provider<br/>Ollama / configurable]
+  api -->|127.0.0.1:11434| ai[AI Teacher<br/>Ollama + local models]
   subgraph vm[Colima VM · Docker Engine]
     subgraph k8s[kind cluster 'cloudmart']
       sys[devopslab-system]
@@ -38,7 +38,7 @@ backend/app/
     cluster.py    ClusterProvider     -> KindCluster
     terminal.py   TerminalProvider    -> (Phase 2) KubeExecTerminal
     labs.py       LabProvisioner      -> NamespaceLabProvisioner
-    ai.py         AIProvider          -> (planned) Ollama, OpenAI-compatible
+    ai.py         AIProvider          -> OllamaProvider (health now, teaching in Phase 9)
   content/     Pydantic models for content + loader (validates on startup)
   api/v1/      HTTP routers; thin, call providers and db
 ```
@@ -71,7 +71,7 @@ challenges with YAML only. See `CONTRIBUTING.md`.
 | Colima VM (`COLIMA_MEMORY=6`)   | 6 GB    | kind nodes, add-ons, labs              |
 | DevOpsLab UI + API              | 0.5 GB  | host processes                         |
 | Browser + editor                | 2 GB    |                                        |
-| Headroom                        | 3.5 GB  |                                        |
+| Headroom                        | 3.5 GB  | fits one 3B–7B Q4 model for the AI Teacher |
 
 Heavy projects (monitoring, Jenkins, Argo CD) deploy on demand only. The
 backend checks free VM memory before deploying and refuses with a clear message
@@ -83,5 +83,6 @@ when the budget would be exceeded.
 - [Lab isolation](security/lab-isolation.md)
 - Network: backend, Vite and ingress host ports bind to 127.0.0.1 only.
 - Auth: every API and WebSocket requires a session (see `docs/api.md`).
-- AI: off by default; nothing leaves the machine without explicit consent per
-  request.
+- AI Teacher: local Ollama by default; commands are only proposed and run after
+  approval; secrets are redacted; external providers are opt-in with consent.
+  See [ai-teacher.md](ai-teacher.md).

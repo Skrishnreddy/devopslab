@@ -1,6 +1,6 @@
 id: gitops
 name: GitOps
 status: planned
-phase: 9
+phase: 10
 description: Declarative delivery with Argo CD.
 modules: []

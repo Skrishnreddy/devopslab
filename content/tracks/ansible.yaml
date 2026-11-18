@@ -1,6 +1,6 @@
 id: ansible
 name: Ansible
 status: planned
-phase: 9
+phase: 10
 description: Inventories, playbooks and roles.
 modules: []

@@ -22,6 +22,7 @@ function InfraCard({ data, error, reload }: { data?: InfraHealth; error?: Error;
               <div className="flex items-center gap-2">
                 <StatusDot status={c.status} />
                 <span className="font-medium text-white">{c.name}</span>
+                {c.optional && <span className="rounded bg-ink-700 px-1.5 text-[10px] uppercase tracking-wide text-ink-400">optional</span>}
                 {c.version && <span className="ml-auto font-mono text-xs text-ink-400">{c.version}</span>}
               </div>
               <p className="mt-1 text-xs text-ink-400">{c.message}</p>

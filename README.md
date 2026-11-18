@@ -8,8 +8,11 @@ real Kubernetes cluster on your laptop and gives you two ways to learn:
 - **Learn Mode**: structured, topic-by-topic modules from beginner to advanced.
 - **Engineer Mode**: production-style projects you deploy, explore, break,
   troubleshoot and reset.
+- **AI Teacher** (Phase 9): a personal DevOps instructor running locally on
+  [Ollama](https://ollama.com). It explains, demonstrates, quizzes you and helps
+  you debug, and never runs a command without your approval.
 
-> **Status: Phase 1 (Foundation) of 10.** The infrastructure, dashboard, auth,
+> **Status: Phase 1 (Foundation) of 11.** The infrastructure, dashboard, auth,
 > health checks and learning catalog work today. Terminals, CloudMart, lessons
 > and the troubleshooting engine are being built next. Everything not built yet
 > is labelled **Planned** in the UI. See the [roadmap](#roadmap).
@@ -27,7 +30,8 @@ real Kubernetes cluster on your laptop and gives you two ways to learn:
 | Projects and troubleshooting catalogs | 15 Kubernetes troubleshooting scenarios with 3 progressive hints · Phase 6 |
 | Local login, session cookies, Origin checks | Prometheus, Grafana, Loki · Phase 7 |
 | Content as YAML with JSON Schemas | Trivy, Kyverno, RBAC, NetworkPolicies · Phase 8 |
-| SQLite with migrations (PostgreSQL-ready) | Jenkins, Argo CD · Phase 9 · optional AI assistant (Ollama) |
+| SQLite with migrations (PostgreSQL-ready) | **Local AI Teacher** on Ollama: lessons, debugging help, quizzes, mock interviews · Phase 9 |
+| Ollama connection check | Jenkins, Argo CD, Terraform, Ansible · Phase 10 |
 
 DevOpsLab never shows sample data: if Colima or the cluster is down, the
 dashboard says so and tells you the command that fixes it.
@@ -102,7 +106,7 @@ flowchart LR
 
 More: [architecture](docs/architecture.md) · [implementation plan](docs/implementation-plan.md) ·
 [API](docs/api.md) · [database](docs/database-schema.md) ·
-[terminal security](docs/security/terminal.md) · [lab isolation](docs/security/lab-isolation.md)
+[AI Teacher](docs/ai-teacher.md) · [terminal security](docs/security/terminal.md) · [lab isolation](docs/security/lab-isolation.md)
 
 ## Repository layout
 
@@ -142,7 +146,8 @@ Configuration: copy `.env.example` to `backend/.env`.
 | Cluster unreachable after reboot | `make up` (resumes the VM; the cluster is kept) |
 | Login says the token is invalid | `make token` and use the new link; tokens rotate if the file was deleted |
 | Port 5173 or 8000 already in use | Stop the other process or set `DEVOPSLAB_PORT` / Vite `--port` |
-| Mac feels slow | `make down` when you're not using the lab; lower `COLIMA_MEMORY` |
+| Mac feels slow | `make down` when you're not using the lab; lower `COLIMA_MEMORY`; use a smaller Ollama model |
+| Dashboard shows Ollama not reachable | Optional until Phase 9. Install with `brew install ollama`, then `ollama serve` |
 
 ## Roadmap
 
@@ -156,8 +161,9 @@ Configuration: copy `.env.example` to `backend/.env`.
 | 6 | Troubleshooting engine | |
 | 7 | Observability | |
 | 8 | DevSecOps | |
-| 9 | CI/CD and GitOps | |
-| 10 | Public release | |
+| 9 | Local AI Teacher (Ollama) | |
+| 10 | CI/CD and GitOps | |
+| 11 | Public release | |
 
 ## Contributing and security
 

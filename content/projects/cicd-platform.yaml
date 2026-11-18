@@ -1,7 +1,7 @@
 id: cicd-platform
 name: CI/CD Platform
 status: planned
-phase: 9
+phase: 10
 summary: Jenkins pipeline building images, scanning with Trivy and deploying to the cluster.
 components:
 - Jenkins

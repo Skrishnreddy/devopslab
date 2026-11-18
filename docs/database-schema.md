@@ -28,6 +28,7 @@ erDiagram
 | `challenge_attempts` | Troubleshooting runs | `id`, `user_id`, `challenge_id`, `lab_id`, `status` (`in_progress`/`passed`/`failed`/`abandoned`), `hints_used`, `solution_viewed`, `validation_runs`, `started_at`, `finished_at` | 1 (table), 6 (engine) |
 | `activity` | Recent items for the dashboard | `id`, `user_id`, `kind` (`module`/`project`/`challenge`), `ref_id`, `title`, `at` | 1 |
 | `settings` | Key/value app settings (AI provider etc.) | `key` (PK), `value` (JSON), `updated_at` | 1 |
+| `ai_conversations`, `ai_messages`, `ai_command_proposals`, `assessments`, `weak_areas` | AI Teacher history, approvals and learner model | see `docs/ai-teacher.md` | 9 |
 
 Derived metrics (no extra tables): overall progress, skills practised (union of
 `skills` from completed modules and passed challenges), learning time (sum of

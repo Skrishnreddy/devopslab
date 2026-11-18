@@ -1,6 +1,8 @@
 """Application settings. Every value can be overridden with a DEVOPSLAB_* env var."""
 from pathlib import Path
+from urllib.parse import urlparse
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -27,6 +29,17 @@ class Settings(BaseSettings):
     cluster_name: str = "cloudmart"
     kubeconfig: Path = Path.home() / ".kube" / "devopslab"
     command_timeout_seconds: float = 5.0
+
+    # AI Teacher (Phase 9). Local Ollama only until external providers exist.
+    ai_enabled: bool = False
+    ollama_url: str = "http://127.0.0.1:11434"
+
+    @field_validator("ollama_url")
+    @classmethod
+    def _ollama_must_be_local(cls, v: str) -> str:
+        if urlparse(v).hostname not in {"127.0.0.1", "localhost", "::1"}:
+            raise ValueError("ollama_url must point at this machine (127.0.0.1); external AI is opt-in only")
+        return v.rstrip("/")
 
     @property
     def kube_context(self) -> str:

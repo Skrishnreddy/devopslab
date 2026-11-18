@@ -8,7 +8,7 @@ export interface Me { id: number; username: string; role: string; session_expire
 export interface Feature { id: string; name: string; status: Availability; phase: number }
 export interface Component {
   id: string; name: string; status: HealthStatus; version: string | null; message: string;
-  remediation: string | null; details: Record<string, string | number>;
+  remediation: string | null; details: Record<string, string | number>; optional: boolean;
 }
 export interface InfraHealth { overall: HealthStatus; checked_at: string; components: Component[] }
 export interface NodeInfo { name: string; ready: boolean; roles: string[]; version: string; arch: string }
@@ -54,7 +54,7 @@ export interface ProgressSummary {
 export interface ActivityItem { kind: string; ref_id: string; title: string; at: string }
 export interface AppSettings {
   environment: Record<string, string>; session_hours: number;
-  ai: { enabled: boolean; provider: string | null; status: Availability };
+  ai: { enabled: boolean; provider: string; base_url: string; local: boolean; status: Availability; phase: number };
 }
 
 export class ApiError extends Error {

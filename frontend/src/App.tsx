@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import { useAuth } from "./lib/auth";
+import AITeacher from "./pages/AITeacher";
 import Dashboard from "./pages/Dashboard";
 import Kubernetes from "./pages/Kubernetes";
 import Learn from "./pages/Learn";
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="projects" element={<Projects />} />
           <Route path="troubleshooting" element={<Troubleshooting />} />
           <Route path="terminal" element={<Terminal />} />
+          <Route path="ai-teacher" element={<AITeacher />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

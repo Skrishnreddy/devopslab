@@ -15,6 +15,7 @@ class ComponentHealth(BaseModel):
     message: str
     remediation: str | None = None
     details: dict[str, str | int | float] = {}
+    optional: bool = False  # optional components never affect the overall status
 
 
 def worst(statuses: list[str]) -> str:

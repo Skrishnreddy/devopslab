@@ -21,7 +21,9 @@ and to agree a disclosure date with you.
 - Terminals never run on the host and never mount the host Docker socket.
 - Learner credentials are never cluster-admin.
 - Lab reset only deletes namespaces it owns.
-- Nothing is sent to an external AI provider without explicit consent.
+- The AI Teacher only proposes commands; nothing runs without the learner's approval.
+- Secrets are redacted before reaching any model; nothing is sent to an external AI
+  provider without explicit consent.
 
 Details: [docs/security/terminal.md](docs/security/terminal.md) and
 [docs/security/lab-isolation.md](docs/security/lab-isolation.md).

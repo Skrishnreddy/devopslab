@@ -18,7 +18,7 @@ as **Planned** with its phase, never as a fake or disabled control.
   session cookie, Origin check on writes.
 - Infra health: real checks of colima, Docker Engine, kind, kubectl, helm,
   and the cluster API, each with version and a fix-it hint.
-- UI: login, sidebar (14 sections), Learn/Engineer switch, dashboard,
+- UI: login, sidebar (14 sections from the spec + AI Teacher), Learn/Engineer switch, dashboard,
   Kubernetes nodes/pods, Learn track with progress, Projects catalog, Settings,
   Planned pages.
 
@@ -88,22 +88,34 @@ deploy.
 Trivy scans (images, manifests), Kyverno policies, RBAC and NetworkPolicy
 labs, security challenges.
 
-## Phase 9: CI/CD and GitOps
+## Phase 9: Local AI Teacher and intelligent learning engine
+
+Design: [ai-teacher.md](ai-teacher.md). Ollama is the default runtime behind a
+model-independent `AIProvider` interface; everything runs locally.
+
+1. Integrate Ollama with FastAPI (status, models, streaming chat).
+2. Configurable local LLM providers and per-role model selection.
+3. Teaching modes and learning context.
+4. Topic-based teaching workflows (step-by-step lessons).
+5. Terminal context and error analysis.
+6. Kubernetes, Docker, Terraform and Linux troubleshooting help.
+7. Quizzes, assignments, mock interviews and assessments.
+8. Learner progress and weak areas.
+9. Model selection and connection status.
+10. Privacy controls (redaction, consent) and command execution approval.
+
+**Accept:** the criteria in `docs/ai-teacher.md`.
+
+## Phase 10: CI/CD and GitOps
 
 Jenkins (on demand), local registry, pipeline building CloudMart images, Trivy
-gate, deploy to cluster, rollback; Helm; Argo CD app-of-apps.
+gate, deploy to cluster, rollback; Helm; Argo CD app-of-apps; Terraform and
+Ansible tracks.
 
-## Phase 10: Public release
+## Phase 11: Public release
 
 Docs site, screenshots, security review, dependency licence review, release
 packaging, GitHub Actions for e2e on a kind cluster, contribution guide.
-
-## AI assistant (after Phase 6)
-
-`AIProvider` interface; Ollama first, OpenAI-compatible endpoint second. Off
-by default. Explains errors and output, suggests next steps, never executes
-commands; external providers need per-request consent and secrets are
-redacted before sending.
 
 ## MVP definition of done → phase
 

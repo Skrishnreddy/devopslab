@@ -43,8 +43,8 @@ export const baseRoutes = {
   "GET /api/v1/infra/health": {
     overall: "warning", checked_at: new Date().toISOString(),
     components: [
-      { id: "colima", name: "Colima", status: "warning", version: "0.8.1", message: "Profile 'devopslab' is not running", remediation: "Run `make up`", details: {} },
-      { id: "helm", name: "Helm", status: "ok", version: "3.16.4", message: "Installed", remediation: null, details: {} },
+      { id: "colima", name: "Colima", status: "warning", version: "0.8.1", message: "Profile 'devopslab' is not running", remediation: "Run `make up`", details: {}, optional: false },
+      { id: "helm", name: "Helm", status: "ok", version: "3.16.4", message: "Installed", remediation: null, details: {}, optional: false },
     ],
   },
   "GET /api/v1/cluster/summary": { connected: false, reason: "No kubeconfig at ~/.kube/devopslab. Run `make up`.", context: "kind-cloudmart" },

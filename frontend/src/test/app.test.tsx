@@ -82,16 +82,17 @@ describe("dashboard", () => {
 });
 
 describe("navigation", () => {
-  it("has the 14 sections from the spec, with planned ones marked", async () => {
+  it("has the spec's sections plus AI Teacher, with planned ones marked", async () => {
     mockApi(baseRoutes);
     renderAt(<App />, "/");
     const nav = await screen.findByRole("navigation", { name: "Main" });
     const links = within(nav).getAllByRole("link");
     expect(links.map((l) => l.textContent?.replace("planned", ""))).toEqual([
       "Dashboard", "Learn", "Linux", "Docker", "Kubernetes", "Terraform", "Jenkins", "Ansible",
-      "Monitoring", "DevSecOps", "Projects", "Troubleshooting", "Terminal", "Settings",
+      "Monitoring", "DevSecOps", "Projects", "Troubleshooting", "Terminal", "AI Teacher", "Settings",
     ]);
     expect(within(links[12]).getByText("planned")).toBeInTheDocument();
+    expect(within(links[13]).getByText("planned")).toBeInTheDocument();
   });
 });
 
@@ -109,5 +110,19 @@ describe("learn", () => {
     renderAt(<App />, "/learn");
     await userEvent.click(await screen.findByRole("button", { name: /Pods: Not started/ }));
     expect(await screen.findByText("disk full")).toBeInTheDocument();
+  });
+});
+
+describe("ai teacher", () => {
+  it("shows the real Ollama status, marked optional on the dashboard", async () => {
+    const ollama = { id: "ollama", name: "Ollama (AI Teacher)", status: "warning", version: null, optional: true,
+      message: "Not reachable at http://127.0.0.1:11434 (URLError). Optional until Phase 9.",
+      remediation: "Install with `brew install ollama`, then run `ollama serve`", details: {} };
+    const infra = baseRoutes["GET /api/v1/infra/health"];
+    mockApi({ ...baseRoutes, "GET /api/v1/infra/health": { ...infra, components: [...infra.components, ollama] } });
+    renderAt(<App />, "/ai-teacher");
+    expect(await screen.findByText(/Not reachable at http:\/\/127.0.0.1:11434/)).toBeInTheDocument();
+    expect(screen.getByText("ollama serve", { selector: "code" })).toBeInTheDocument();
+    expect(screen.getByText("Debug My Error")).toBeInTheDocument();
   });
 });

@@ -18,3 +18,8 @@ versioning: [SemVer](https://semver.org/).
   projects and troubleshooting catalogs, settings; unbuilt features clearly marked Planned.
 - Architecture, API, database, terminal security and lab isolation documentation.
 - CI: backend and frontend tests, lint, type checks, ShellCheck and secret scanning.
+- AI Teacher design (Phase 9): Ollama-first, model-independent provider interface; dashboard
+  shows whether Ollama is reachable; AI Teacher section marked Planned.
+
+### Changed
+- Roadmap: Local AI Teacher is Phase 9; CI/CD and GitOps move to Phase 10; public release to Phase 11.

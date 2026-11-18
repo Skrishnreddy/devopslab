@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  Activity, BookOpen, Boxes, Container, FolderKanban, Gauge, Hammer, LifeBuoy, Server, Settings,
+  Activity, BookOpen, Bot, Boxes, Container, FolderKanban, Gauge, Hammer, LifeBuoy, Server, Settings,
   Settings2, Shield, SquareTerminal, Workflow, Wrench, type LucideIcon,
 } from "lucide-react";
 import { api } from "../api";
@@ -22,6 +22,7 @@ const NAV: NavItem[] = [
   { to: "/projects", label: "Projects", icon: FolderKanban },
   { to: "/troubleshooting", label: "Troubleshooting", icon: LifeBuoy },
   { to: "/terminal", label: "Terminal", icon: SquareTerminal, planned: true },
+  { to: "/ai-teacher", label: "AI Teacher", icon: Bot, planned: true },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

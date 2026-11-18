@@ -27,8 +27,8 @@ FEATURES = [
     ("troubleshooting", "Troubleshooting challenges", "planned", 6),
     ("monitoring", "Prometheus, Grafana, Loki", "planned", 7),
     ("devsecops", "Trivy, Kyverno, policies", "planned", 8),
-    ("cicd", "Jenkins, Argo CD", "planned", 9),
-    ("ai-assistant", "AI troubleshooting assistant", "planned", 6),
+    ("ai-teacher", "Local AI Teacher (Ollama)", "planned", 9),
+    ("cicd", "Jenkins, Argo CD", "planned", 10),
 ]
 
 
@@ -44,10 +44,12 @@ def features():
 
 @router.get("/infra/health")
 async def infra_health():
-    runtime, cluster = await asyncio.gather(registry.runtime().health(), registry.cluster().health())
-    components = [*runtime, *cluster]
+    runtime, cluster, ai = await asyncio.gather(
+        registry.runtime().health(), registry.cluster().health(), registry.ai().health()
+    )
+    components = [*runtime, *cluster, ai]
     return {
-        "overall": worst([c.status for c in components]),
+        "overall": worst([c.status for c in components if not c.optional]),
         "checked_at": datetime.now(UTC),
         "components": [c.model_dump() for c in components],
     }
@@ -66,5 +68,6 @@ def get_settings():
             "docker_context": settings.docker_context,
         },
         "session_hours": settings.session_hours,
-        "ai": {"enabled": False, "provider": None, "status": "planned"},
+        "ai": {"enabled": settings.ai_enabled, "provider": "ollama", "base_url": settings.ollama_url,
+               "local": True, "status": "planned", "phase": 9},
     }
