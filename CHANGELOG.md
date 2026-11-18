@@ -21,5 +21,12 @@ versioning: [SemVer](https://semver.org/).
 - AI Teacher design (Phase 9): Ollama-first, model-independent provider interface; dashboard
   shows whether Ollama is reachable; AI Teacher section marked Planned.
 
+### Fixed
+- `make install` now uses Python 3.12/3.13 even when the default `python3` is 3.14.
+- `make prereqs` no longer installs tools already on PATH (e.g. Docker Desktop's CLI).
+- `make up` restores your previous Docker context after starting Colima.
+- Infrastructure health's kind check no longer depends on the global Docker context.
+- Frontend dev dependencies updated (vitest 4.1.12); `npm audit` is clean.
+
 ### Changed
 - Roadmap: Local AI Teacher is Phase 9; CI/CD and GitOps move to Phase 10; public release to Phase 11.
