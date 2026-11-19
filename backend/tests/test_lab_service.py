@@ -25,14 +25,14 @@ class FakeProvisioner(NamespaceLabProvisioner):
 
     def run(self, action, source, on_step=None):
         self.actions.append(action)
-        steps = [Step("render manifests", "ok"), Step(f"{action} step", "running")]
+        steps = [Step("render manifests", "ok"), Step("create namespaces", "ok"), Step("wait until ready", "running")]
         if on_step:
             on_step(steps)
         assert self.gate.wait(5)
         if action in self.fail:
-            steps[1].state = "failed"
+            steps[2].state = "failed"
             raise LabError(self.fail[action], "wait until ready")
-        steps[1].state = "ok"
+        steps[2].state = "ok"
         if on_step:
             on_step(steps)
         return steps
@@ -61,7 +61,7 @@ def test_deploy_then_running_with_expiry(authed, prov):
     lab = settle(authed)
     assert lab["status"] == "running" and lab["namespaces"] == ["lab-cloudmart"]
     assert lab["url"] == "http://localhost:8080" and lab["expires_at"]
-    assert [s["state"] for s in lab["operation"]["steps"]] == ["ok", "ok"]
+    assert [s["state"] for s in lab["operation"]["steps"]] == ["ok", "ok", "ok"]
     assert authed.post("/api/v1/labs", json={"ref_id": "cloudmart"}).status_code == 409  # already deployed
 
 
@@ -83,7 +83,7 @@ def test_failed_reset_reports_the_step_and_error(authed, prov):
     assert lab["status"] == "failed"
     assert lab["last_error"] == "wait until ready: deployment.apps/api isn't ready: ErrImageNeverPull"
     assert lab["operation"]["failed_step"] == "wait until ready"
-    assert lab["operation"]["steps"][1]["state"] == "failed"
+    assert lab["operation"]["steps"][2]["state"] == "failed"
     # a failed lab can be reset again, and success clears the error
     prov.fail.clear()
     authed.post("/api/v1/labs/cloudmart/reset")
@@ -165,3 +165,13 @@ def test_recover_marks_interrupted_labs_failed(authed, prov):
     lab = db.get(Lab, "cloudmart")
     assert lab.status == "failed" and lab.last_error.startswith("interrupted")
     db.close()
+
+
+def test_failed_deploy_keeps_its_namespaces_for_usage_and_cleanup(authed, prov, monkeypatch):
+    prov.fail["deploy"] = "deployment.apps/api can't start: ErrImageNeverPull"
+    authed.post("/api/v1/labs", json={"ref_id": "cloudmart"})
+    lab = settle(authed)
+    assert lab["status"] == "failed" and lab["namespaces"] == ["lab-cloudmart"]
+    usage = {"cpu_millicores": 5, "memory_mib": 60, "pods": 6, "quota": {}, "metrics_error": None}
+    monkeypatch.setattr(registry, "cluster", lambda: type("C", (), {"usage": lambda self, ns: usage})())
+    assert authed.get("/api/v1/labs/cloudmart/usage").json() == usage

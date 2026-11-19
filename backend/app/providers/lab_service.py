@@ -146,6 +146,12 @@ class LabService:
             else:
                 lab.status = "failed"
                 lab.last_error = f"{op.failed_step}: {op.error}"[:4000]
+                created = any(s.name == "create namespaces" and s.state == "ok" for s in op.steps)
+                if created and not lab.namespaces:  # a failed deploy still left namespaces running
+                    try:
+                        lab.namespaces = self.provisioner.namespaces(ref_id)
+                    except LabError as e:
+                        log.warning("lab %s: couldn't list namespaces after failure: %s", lab_id, e)
             lab.updated_at = now
             db.commit()
             log.info("lab %s %s: %s%s", lab_id, op.action, op.state, f" at '{op.failed_step}'" if op.error else "")

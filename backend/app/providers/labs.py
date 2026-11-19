@@ -25,6 +25,8 @@ LAB_DIR_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,40}$")
 RESETTABLE = "devopslab.io/resettable"
 PROTECTED = {"default", "kube-system", "kube-public", "kube-node-lease", "ingress-nginx"}
 WAIT_SECONDS = 240
+# Pod waiting reasons that never resolve on their own; waiting longer only hides the error.
+FATAL_REASONS = ("ErrImageNeverPull", "InvalidImageName", "CreateContainerConfigError")
 
 
 class LabError(Exception):
@@ -134,16 +136,25 @@ class NamespaceLabProvisioner:
         return out.split()
 
     def wait_ready(self, namespaces: list[str]) -> str:
+        """Wait for every rollout, checking pods between short waits so errors that never heal fail fast."""
         done = []
         deadline = time.monotonic() + WAIT_SECONDS
         for ns in namespaces:
             for w in self.workloads(ns):
-                left = max(10, int(deadline - time.monotonic()))
-                try:
-                    self._kubectl("rollout", "status", w, "-n", ns, f"--timeout={left}s", step="wait until ready",
-                                  timeout=left + 15)
-                except LabError as e:
-                    raise LabError(f"{w} isn't ready: {e}\n{self.pod_problems(ns)}", "wait until ready") from e
+                while True:
+                    chunk = max(5, min(15, int(deadline - time.monotonic())))
+                    try:
+                        self._kubectl("rollout", "status", w, "-n", ns, f"--timeout={chunk}s",
+                                      step="wait until ready", timeout=chunk + 15)
+                        break
+                    except LabError as e:
+                        problems = self.pod_problems(ns)
+                        fatal = next((r for r in FATAL_REASONS if r in problems), None)
+                        if fatal:
+                            raise LabError(f"{w} can't start: {fatal} won't fix itself by waiting.\n{problems}",
+                                           "wait until ready") from e
+                        if "timed out" not in str(e) or time.monotonic() >= deadline:
+                            raise LabError(f"{w} isn't ready: {e}\n{problems}", "wait until ready") from e
                 done.append(w)
         return f"{len(done)} workloads ready"
 

@@ -55,6 +55,7 @@ class Kube:
 
     def __init__(self, rendered: str, workloads: str = "deployment.apps/api\n"):
         self.rendered, self.workloads, self.calls, self.fail, self.secrets = rendered, workloads, [], {}, set()
+        self.pods = "POD  STATUS  REASON  MESSAGE\napi-1  Running  <none>  <none>\n"
 
     def __call__(self, *args, step, stdin=None, **_):
         self.calls.append((args, stdin))
@@ -64,6 +65,8 @@ class Kube:
             return self.rendered
         if args[:2] == ("get", "secret"):
             return f"secret/{args[2]}" if args[2] in self.secrets else ""
+        if args[:2] == ("get", "pods"):
+            return self.pods
         if args[:2] == ("get", "deployments,statefulsets"):
             return self.workloads
         if args[0] == "delete":
@@ -185,3 +188,25 @@ def test_cloudmart_lab_is_well_formed():
         for c in (x.get("spec", {}).get("template", {}).get("spec", {}).get("containers") or []):
             assert c.get("resources", {}).get("limits"), f"{x['metadata']['name']} has no limits"
             assert ":latest" not in c["image"] and ":" in c["image"]
+
+
+def test_unrecoverable_pod_errors_fail_fast(engine):
+    p, kube = engine
+    kube.fail["rollout"] = "error: timed out waiting for the condition"
+    kube.pods = 'POD  STATUS  REASON  MESSAGE\napi-1  Pending  ErrImageNeverPull  Container image "x" is not present\n'
+    with pytest.raises(LabError) as e:
+        p.run("deploy", "demo")
+    assert e.value.step == "wait until ready" and "ErrImageNeverPull won't fix itself" in str(e.value)
+    assert [a[0] for a, _ in kube.calls].count("rollout") == 1  # no waiting out the full timeout
+
+
+def test_slow_rollouts_keep_waiting_until_the_deadline(engine, monkeypatch):
+    import app.providers.labs as labs_mod
+    p, kube = engine
+    kube.fail["rollout"] = "error: timed out waiting for the condition"
+    clock = iter(range(0, 10_000, 60))
+    monkeypatch.setattr(labs_mod.time, "monotonic", lambda: next(clock))
+    with pytest.raises(LabError) as e:
+        p.wait_ready(["lab-demo"])
+    assert "isn't ready: error: timed out" in str(e.value)
+    assert [a[0] for a, _ in kube.calls].count("rollout") > 1
