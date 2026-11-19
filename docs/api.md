@@ -34,6 +34,12 @@ Base path `/api/v1`. JSON everywhere. Served on 127.0.0.1 only.
 | GET | `/learn/tracks` | | `[Track]` with per-user `progress` |
 | GET | `/learn/tracks/{track_id}` | | `Track` |
 | PUT | `/learn/modules/{module_id}/progress` | `{status: not_started\|started\|completed}` | `{module_id, status, completed_at}` |
+| GET | `/learn/modules/{module_id}` | | the lesson: module fields, `status`, `namespace`, `lesson{concept, use_case, architecture, commands[], yaml[]}`, `exercises[{id, title, kind, instructions, expected_output, hint, has_setup, checks[] (descriptions), passed, last{passed, at, results[]}}]`, `quiz{questions[{question, options}], best_percent, passed, pass_percent}`. Never includes quiz answers or solutions. `404` if the module has no lesson |
+| POST | `/learn/modules/{id}/exercises/{ex}/check` | | runs the checks against the cluster: `{passed, results[{description, passed, observed}], at, module_status}`; records the attempt; `503` if the cluster is unreachable |
+| POST | `/learn/modules/{id}/exercises/{ex}/setup` | | applies the exercise's starting state to `lab-playground`: `{namespace, output[]}` (kubectl's output); `409` if it has none; `502` with kubectl's error |
+| POST | `/learn/modules/{id}/exercises/{ex}/reset` | | deletes what the exercise creates in `lab-playground`, then re-applies its setup |
+| GET | `/learn/modules/{id}/exercises/{ex}/solution` | | `{solution}` |
+| POST | `/learn/modules/{id}/quiz` | `{answers: [int]}` | graded on the server: `{score, total, percent, passed (≥70%), results[{correct, answer, explanation}], module_status}` |
 | GET | `/projects` | | `[Project]` from content catalog, with `status` |
 | GET | `/labs` | | every deployable lab: `[Lab]`, `status: not_deployed` when it has never been deployed |
 | GET | `/labs/{id}` | | `Lab`: `{id, kind, ref_id, url, status, namespaces, last_error, created_at, updated_at, expires_at, operation}`. `status`: `not_deployed`, `deploying`, `running`, `starting`, `stopping`, `stopped`, `resetting`, `deleting`, `failed`. `operation` (in memory, last one): `{action, state: running\|succeeded\|failed, error, failed_step, steps: [{name, state: pending\|running\|ok\|failed, detail, seconds}]}` |
@@ -63,7 +69,6 @@ Base path `/api/v1`. JSON everywhere. Served on 127.0.0.1 only.
 | 3 | GET | `/lab/operation` | last start/stop: state, exit code, last 300 output lines |
 | 3 | POST | `/lab/{start\|stop}` | `202`; runs `infra/scripts/up.sh` / `down.sh` (same as `make up` / `make down`); `409` if one is running |
 |   |   | Kubernetes API errors | passed through verbatim: `{"error":{"code":"kubernetes_error","message":"pods \"x\" not found","detail":{"status":404}}}`; unreachable cluster is `503 cluster_unreachable` |
-| 5 | POST | `/learn/exercises/{id}/check` | runs validation in the lab |
 | 6 | POST | `/challenges/{id}/start` | creates lab + injects fault |
 | 6 | POST | `/challenges/attempts/{id}/hints` | reveals next hint (max 3) |
 | 6 | POST | `/challenges/attempts/{id}/validate` | runs validation conditions |

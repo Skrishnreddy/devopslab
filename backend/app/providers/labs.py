@@ -29,6 +29,21 @@ WAIT_SECONDS = 240
 FATAL_REASONS = ("ErrImageNeverPull", "InvalidImageName", "CreateContainerConfigError")
 
 
+def kubectl(*args: str, step: str, stdin: str | None = None, timeout: float = 300, runner=None) -> str:
+    """Run kubectl against the DevOpsLab cluster. Errors carry kubectl's own message and the step name."""
+    cmd = ["kubectl", "--kubeconfig", str(settings.kubeconfig), "--context", settings.kube_context, *args]
+    try:
+        res = (runner or subprocess.run)(cmd, capture_output=True, text=True, timeout=timeout, check=False,
+                                         input=stdin)
+    except FileNotFoundError as e:
+        raise LabError("kubectl not found. Run `make prereqs`.", step) from e
+    except subprocess.TimeoutExpired as e:
+        raise LabError(f"kubectl {args[0]} timed out after {int(timeout)}s", step) from e
+    if res.returncode != 0:
+        raise LabError((res.stderr or res.stdout).strip() or f"kubectl {args[0]} failed", step)
+    return res.stdout
+
+
 class LabError(Exception):
     def __init__(self, message: str, step: str = "unknown"):
         super().__init__(message)
@@ -65,16 +80,7 @@ class NamespaceLabProvisioner:
 
     # ---- kubectl ----------------------------------------------------------
     def _kubectl(self, *args: str, step: str, stdin: str | None = None, timeout: float = 300) -> str:
-        cmd = ["kubectl", "--kubeconfig", str(settings.kubeconfig), "--context", settings.kube_context, *args]
-        try:
-            res = self.runner(cmd, capture_output=True, text=True, timeout=timeout, check=False, input=stdin)
-        except FileNotFoundError as e:
-            raise LabError("kubectl not found. Run `make prereqs`.", step) from e
-        except subprocess.TimeoutExpired as e:
-            raise LabError(f"kubectl {args[0]} timed out after {int(timeout)}s", step) from e
-        if res.returncode != 0:
-            raise LabError((res.stderr or res.stdout).strip() or f"kubectl {args[0]} failed", step)
-        return res.stdout
+        return kubectl(*args, step=step, stdin=stdin, timeout=timeout, runner=self.runner)
 
     # ---- sources ------------------------------------------------------------
     def source_dir(self, source: str) -> Path:

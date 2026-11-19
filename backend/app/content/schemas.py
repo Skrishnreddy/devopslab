@@ -4,9 +4,9 @@ import sys
 from pathlib import Path
 
 from ..core.config import settings
-from .models import Challenge, Project, Track
+from .models import Challenge, Lesson, Project, Track
 
-MODELS = {"track": Track, "project": Project, "challenge": Challenge}
+MODELS = {"track": Track, "project": Project, "challenge": Challenge, "lesson": Lesson}
 
 
 def render() -> dict[str, str]:

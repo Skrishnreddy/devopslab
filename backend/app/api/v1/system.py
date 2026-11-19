@@ -24,7 +24,7 @@ FEATURES = [
     ("kubernetes-explorer", "Deployments, services, logs, events", "available", 3),
     ("labs", "Lab management (deploy, reset)", "available", 4),
     ("cloudmart", "CloudMart project", "available", 4),
-    ("lessons", "Lessons, exercises and checks", "planned", 5),
+    ("lessons", "Lessons, exercises and checks", "available", 5),
     ("troubleshooting", "Troubleshooting challenges", "planned", 6),
     ("monitoring", "Prometheus, Grafana, Loki", "planned", 7),
     ("devsecops", "Trivy, Kyverno, policies", "planned", 8),

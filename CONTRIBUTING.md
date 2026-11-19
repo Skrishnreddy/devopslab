@@ -25,6 +25,33 @@ at the top of a challenge file.
 | Learning track and modules | `content/tracks/<id>.yaml` | `track.schema.json` |
 | Engineer Mode project | `content/projects/<id>.yaml` | `project.schema.json` |
 | Troubleshooting scenario | `content/challenges/<tech>/<id>.yaml` | `challenge.schema.json` |
+| Lesson for a module | `content/lessons/<track>/<module-id>.yaml` | `lesson.schema.json` |
+
+### Writing a lesson
+
+A lesson's `id` is the module id it belongs to. It needs a concept, a use
+case, an architecture sketch, commands, optional YAML examples, at least one
+exercise (one of them `kind: troubleshooting`) and at least three quiz
+questions. See `content/lessons/kubernetes/k8s-02-pods.yaml`.
+
+Exercises run in the `lab-playground` namespace, where the Kubernetes
+terminal works. Each one has:
+
+- `checks`: what **Check** verifies against the real cluster, read-only.
+  Types: `exists`, `absent`, `field` (a dotted path such as
+  `spec.containers[0].image` equals a value), `pods_ready` (by label
+  selector), `rollout_ready`, `endpoints`, and `answer` (a ConfigMap key must
+  equal a real cluster fact, which is never shown to the learner).
+- `setup` (optional): manifests applied before a troubleshooting exercise.
+  Only Pods, Deployments, ReplicaSets, Services and ConfigMaps, and no
+  `namespace` field; everything goes to `lab-playground`.
+- `cleanup`: every object the exercise creates, including its setup. **Reset**
+  deletes these and applies the setup again. A test checks that every
+  object a check looks at is in `cleanup`.
+- `expected_output`, an optional `hint`, and a `solution` that is shown only
+  when the learner asks for it.
+
+Images must be pinned tags that run under Pod Security `baseline`.
 
 A scenario can only be `status: available` once it has an initial state,
 injection steps, symptoms, exactly three hints (direction → resource →

@@ -28,8 +28,8 @@ export const kubernetesTrack = {
   id: "kubernetes", name: "Kubernetes", description: "k8s", status: "available", phase: 1,
   progress: { completed: 1, total: 2, percent: 50 },
   modules: [
-    { id: "k8s-01-architecture", order: 1, title: "Kubernetes Architecture", level: "beginner", task: "Explore the cluster", skills: [], phase: 5, status: "completed", completed_at: "2026-01-01T00:00:00Z" },
-    { id: "k8s-02-pods", order: 2, title: "Pods", level: "beginner", task: "Create and delete Pods", skills: [], phase: 5, status: "not_started", completed_at: null },
+    { id: "k8s-01-architecture", order: 1, title: "Kubernetes Architecture", level: "beginner", task: "Explore the cluster", skills: [], phase: 5, status: "completed", completed_at: "2026-01-01T00:00:00Z", lesson: true },
+    { id: "k8s-02-pods", order: 2, title: "Pods", level: "beginner", task: "Create and delete Pods", skills: [], phase: 5, status: "not_started", completed_at: null, lesson: false },
   ],
 };
 export const linuxTrack = { id: "linux", name: "Linux", description: "Shell", status: "planned", phase: 5, modules: [], progress: { completed: 0, total: 0, percent: 0 } };

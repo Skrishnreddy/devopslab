@@ -5,6 +5,17 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (Phase 5: Learning engine)
+- Lessons as YAML (`content/lessons/`, `lesson.schema.json`): concept, use case, architecture,
+  commands, YAML examples, exercises, expected output, a troubleshooting exercise and a quiz.
+- Full lessons for the first five Kubernetes modules: architecture, Pods, ReplicaSets,
+  Deployments and Services; 10 exercises (5 troubleshooting) and 19 quiz questions.
+- Exercise checks read the real cluster (`lab-playground`) and show what they observed, e.g.
+  `1 of 2 pods with app=cache ready: cache-x (Running), cache-manual (ImagePullBackOff)`.
+- Set up (applies a broken starting state), Reset, hints and solutions on request; quizzes are
+  graded on the server with explanations. A module completes when every exercise and the quiz
+  pass; attempts are recorded.
+
 ### Added (Phase 4: CloudMart and lab management)
 - CloudMart: React storefront, FastAPI API, PostgreSQL and Redis behind ingress-nginx at
   http://localhost:8080, as Kustomize manifests in `labs/cloudmart` with quota, limit range,

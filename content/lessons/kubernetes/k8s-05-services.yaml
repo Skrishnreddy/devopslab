@@ -1,0 +1,159 @@
+# yaml-language-server: $schema=../../schemas/lesson.schema.json
+id: k8s-05-services
+concept: |
+  Pods come and go and their IPs change. A **Service** gives a set of Pods one
+  stable name and virtual IP. Other Pods reach it by DNS: `hello` from the
+  same namespace, or `hello.lab-playground.svc.cluster.local` from anywhere.
+
+  A Service finds its Pods with a **label selector**. Kubernetes keeps an
+  **Endpoints** object listing the IPs of matching Pods that are **Ready**, and
+  kube-proxy routes the Service's IP to them. No matching ready Pods means no
+  endpoints, so connections fail even though the Service exists.
+
+  Types: `ClusterIP` (default, inside the cluster), `NodePort` (a port on every
+  node) and `LoadBalancer` (an external load balancer from the cloud). In
+  DevOpsLab, outside traffic comes through the ingress controller instead.
+use_case: |
+  "The app can't reach the database" is very often a Service with no
+  endpoints: a selector typo, a label changed in a new release, or Pods that
+  aren't Ready. `kubectl get endpoints` answers it in seconds.
+architecture: |
+  client Pod ──DNS "hello"──► Service hello (ClusterIP 10.96.x.x:80)
+                                  │ selector app=hello
+                                  ▼
+                       Endpoints hello: 10.244.1.5:80, 10.244.2.9:80
+                                  │ kube-proxy rules
+                     ┌────────────┴───────────┐
+                  Pod hello-1 (Ready)     Pod hello-2 (Ready)
+commands:
+  - command: kubectl expose deployment hello --port=80
+    explanation: Create a ClusterIP Service with the Deployment's selector.
+  - command: kubectl get svc,endpoints hello
+    explanation: The Service and the Pod IPs behind it. Empty ENDPOINTS means no ready Pods match.
+  - command: kubectl describe svc hello
+    explanation: Selector, ports and endpoints together.
+  - command: kubectl get pods --show-labels
+    explanation: Compare Pod labels with the Service selector.
+  - command: kubectl run tmp --image=busybox:1.37 --rm -it --restart=Never -- wget -qO- http://hello
+    explanation: Call the Service from inside the cluster, then delete the temporary Pod.
+yaml:
+  - title: A Service
+    explanation: "`selector` must match the Pod template labels; `targetPort` is the container port."
+    content: |
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: hello
+      spec:
+        selector: {app: hello}
+        ports:
+          - port: 80
+            targetPort: 80
+exercises:
+  - id: expose
+    title: Expose a Deployment
+    instructions: |
+      Create a Deployment `hello` running `nginx:1.27-alpine` with 2 replicas,
+      expose it as a Service `hello` on port 80, and call it from a temporary Pod
+      (the `kubectl run tmp ...` command above).
+    expected_output: |
+      <title>Welcome to nginx!</title>
+    checks:
+      - type: rollout_ready
+        description: Deployment hello is ready
+        name: hello
+        min: 2
+      - type: field
+        description: Service hello listens on port 80
+        kind: Service
+        name: hello
+        path: spec.ports[0].port
+        equals: 80
+      - type: endpoints
+        description: Service hello has 2 ready endpoints
+        name: hello
+        min: 2
+    cleanup:
+      - {kind: Service, name: hello}
+      - {kind: Deployment, name: hello}
+    solution: |
+      kubectl create deployment hello --image=nginx:1.27-alpine --replicas=2
+      kubectl expose deployment hello --port=80
+      kubectl get endpoints hello
+      kubectl run tmp --image=busybox:1.37 --rm -it --restart=Never -- wget -qO- http://hello
+  - id: no-endpoints
+    title: "Troubleshoot: a Service with no endpoints"
+    kind: troubleshooting
+    instructions: |
+      Press **Set up**. The `orders` Pods are Running and Ready, but calls to
+      `http://orders` fail. Find out why and fix it. Don't change the Deployment.
+    expected_output: |
+      NAME     ENDPOINTS                     AGE
+      orders   10.244.1.12:80,10.244.2.8:80   3m
+    hint: "`kubectl get endpoints orders` is empty. Compare the Service's selector with the Pods' labels."
+    setup: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: orders
+      spec:
+        replicas: 2
+        selector:
+          matchLabels: {app: orders}
+        template:
+          metadata:
+            labels: {app: orders}
+          spec:
+            containers:
+              - name: web
+                image: nginx:1.27-alpine
+                resources:
+                  requests: {cpu: 20m, memory: 32Mi}
+                  limits: {cpu: 100m, memory: 64Mi}
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: orders
+      spec:
+        selector: {app: order}
+        ports:
+          - port: 80
+            targetPort: 80
+    checks:
+      - type: field
+        description: The Service selects app=orders
+        kind: Service
+        name: orders
+        path: spec.selector.app
+        equals: orders
+      - type: endpoints
+        description: Service orders has 2 ready endpoints
+        name: orders
+        min: 2
+    cleanup:
+      - {kind: Service, name: orders}
+      - {kind: Deployment, name: orders}
+    solution: |
+      The Service selects app=order (missing "s"), which matches no Pod, so it
+      has no endpoints. Fix the selector:
+
+        kubectl patch service orders -p '{"spec":{"selector":{"app":"orders"}}}'
+        kubectl get endpoints orders
+quiz:
+  - question: How does a Service know which Pods to send traffic to?
+    options: [By Pod name, By its label selector, By the Deployment name, By node]
+    answer: 1
+    explanation: The Endpoints controller lists the IPs of ready Pods whose labels match the selector.
+  - question: A Service exists but `kubectl get endpoints` is empty. Which is NOT a possible cause?
+    options: [The selector matches no Pod labels, The matching Pods aren't Ready, The Service's ClusterIP is wrong, There are no Pods]
+    answer: 2
+    explanation: The ClusterIP is assigned by Kubernetes and has nothing to do with endpoints. Selector mismatches and unready Pods do.
+  - question: From another Pod in the same namespace, which name reaches Service hello?
+    options: [hello, hello.pod, svc-hello, Only its ClusterIP works]
+    answer: 0
+    explanation: CoreDNS resolves the short name within the namespace, or hello.<namespace>.svc.cluster.local from anywhere.
+  - question: Which Service type is the default?
+    options: [NodePort, LoadBalancer, ClusterIP, ExternalName]
+    answer: 2
+    explanation: ClusterIP gives an internal virtual IP reachable only inside the cluster.

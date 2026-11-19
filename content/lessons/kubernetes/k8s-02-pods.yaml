@@ -1,0 +1,142 @@
+# yaml-language-server: $schema=../../schemas/lesson.schema.json
+id: k8s-02-pods
+concept: |
+  A **Pod** is the smallest thing Kubernetes runs: one or more containers that
+  share a network address and can share volumes. Containers in a Pod are always
+  scheduled together on the same node.
+
+  Pods are disposable. If a Pod's node dies, the Pod is gone; nothing recreates
+  a bare Pod. That is why real applications use controllers (ReplicaSets,
+  Deployments) that create Pods for you. You still need to read Pods well,
+  because that's where things actually fail.
+
+  A Pod moves through phases: `Pending` (not scheduled, or images still
+  pulling), `Running`, `Succeeded` or `Failed`. Within it, each container has
+  its own state: `Waiting` (with a reason like `ImagePullBackOff` or
+  `CrashLoopBackOff`), `Running` or `Terminated` (with an exit code).
+use_case: |
+  You'll create Pods directly to test an image or debug from inside the
+  cluster (`kubectl run tmp --image=busybox -it --rm -- sh`). Most of your time
+  with Pods, though, is diagnosis: reading `STATUS`, `RESTARTS`, events and
+  logs to work out why an app isn't serving.
+architecture: |
+  Pod web (one IP, e.g. 10.244.1.7)
+  ┌──────────────────────────────────┐
+  │ container: web  (nginx, port 80)  │
+  │ [optional sidecar containers]     │
+  │ shared: network namespace, volumes│
+  └──────────────────────────────────┘
+  scheduled to one node → kubelet pulls the image → starts containers
+  → reports status back to the API server
+commands:
+  - command: kubectl run web --image=nginx:1.27-alpine --labels=app=web
+    explanation: Create a single Pod named web from an image.
+  - command: kubectl get pods -o wide
+    explanation: STATUS, READY, RESTARTS, the Pod IP and its node.
+  - command: kubectl describe pod web
+    explanation: Container states, exit codes, conditions and events. Your main diagnostic tool.
+  - command: kubectl logs web
+    explanation: What the container printed. Add --previous to see the last crashed container.
+  - command: kubectl set image pod/web web=nginx:1.27-alpine
+    explanation: Change a container's image in place. Image is one of the few Pod fields you may change.
+  - command: kubectl delete pod web
+    explanation: Delete it. A bare Pod is not recreated.
+yaml:
+  - title: A Pod manifest
+    explanation: The same Pod as `kubectl run`, written declaratively. Apply with `kubectl apply -f pod.yaml`.
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: web
+        labels: {app: web}
+      spec:
+        containers:
+          - name: web
+            image: nginx:1.27-alpine
+            ports:
+              - containerPort: 80
+            resources:
+              requests: {cpu: 50m, memory: 32Mi}
+              limits: {cpu: 200m, memory: 64Mi}
+exercises:
+  - id: first-pod
+    title: Run your first Pod
+    instructions: |
+      In a **Kubernetes** terminal, create a Pod named `web` running
+      `nginx:1.27-alpine` with the label `app=web`. Wait until it is Running and
+      Ready (`kubectl get pod web -w`, Ctrl+C to stop watching), then press **Check**.
+    expected_output: |
+      NAME   READY   STATUS    RESTARTS   AGE
+      web    1/1     Running   0          15s
+    checks:
+      - type: pods_ready
+        description: Pod web is Running and Ready
+        selector: {app: web}
+        min: 1
+      - type: field
+        description: web runs nginx:1.27-alpine
+        kind: Pod
+        name: web
+        path: spec.containers[0].image
+        equals: nginx:1.27-alpine
+    cleanup:
+      - {kind: Pod, name: web}
+    solution: |
+      kubectl run web --image=nginx:1.27-alpine --labels=app=web
+      kubectl get pod web -w
+  - id: bad-image
+    title: "Troubleshoot: ImagePullBackOff"
+    kind: troubleshooting
+    instructions: |
+      Press **Set up**. The Pod `shop` never becomes Ready. Find out why and fix
+      it without deleting the Pod.
+    expected_output: |
+      NAME   READY   STATUS    RESTARTS   AGE
+      shop   1/1     Running   0          2m
+    hint: Look at the container's Waiting reason and the Failed events in `kubectl describe pod shop`.
+    setup: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: shop
+        labels: {app: shop}
+      spec:
+        containers:
+          - name: shop
+            image: nginx:1.27-alpinee
+    checks:
+      - type: pods_ready
+        description: Pod shop is Running and Ready
+        selector: {app: shop}
+        min: 1
+      - type: field
+        description: shop's image tag exists (nginx:1.27-alpine)
+        kind: Pod
+        name: shop
+        path: spec.containers[0].image
+        equals: nginx:1.27-alpine
+    cleanup:
+      - {kind: Pod, name: shop}
+    solution: |
+      The image tag has a typo (nginx:1.27-alpinee), so the pull fails:
+      ErrImagePull, then ImagePullBackOff. Fix the image in place:
+
+        kubectl set image pod/shop shop=nginx:1.27-alpine
+quiz:
+  - question: What do the containers in one Pod share?
+    options: [Nothing; they are fully isolated, A network address and optionally volumes, The same image, A node with every other Pod in the namespace]
+    answer: 1
+    explanation: Containers in a Pod share one network namespace (they reach each other on localhost) and can mount the same volumes.
+  - question: A bare Pod's node fails. What happens to the Pod?
+    options: [The scheduler moves it to another node, The kubelet restarts it elsewhere, It is gone; nothing recreates it, It waits until the node returns and always restarts]
+    answer: 2
+    explanation: Only controllers like ReplicaSets and Deployments recreate Pods. That is why you rarely run bare Pods.
+  - question: "STATUS shows ImagePullBackOff. What is wrong?"
+    options: [The app crashed on start, The kubelet couldn't pull the image and is backing off between retries, The Pod has no node, The readiness probe failed]
+    answer: 1
+    explanation: Usually a wrong image name or tag, a private registry without credentials, or no network access to the registry.
+  - question: Which command shows a crashed container's output from before its restart?
+    options: [kubectl logs pod --previous, kubectl describe pod, kubectl get events, kubectl logs pod -f]
+    answer: 0
+    explanation: --previous prints the logs of the last terminated container instance.

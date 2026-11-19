@@ -25,7 +25,29 @@ export interface Pod {
 }
 export interface Module {
   id: string; order: number; title: string; level: Level; task: string; skills: string[]; phase: number;
-  status: ModuleStatus; completed_at: string | null;
+  status: ModuleStatus; completed_at: string | null; lesson: boolean;
+}
+export interface CheckResult { description: string; passed: boolean; observed: string }
+export interface ExerciseView {
+  id: string; title: string; kind: "practice" | "troubleshooting"; instructions: string;
+  expected_output: string | null; hint: string | null; has_setup: boolean; checks: string[]; passed: boolean;
+  last: { passed: boolean; at: string; results: CheckResult[] } | null;
+}
+export interface LessonView {
+  id: string; order: number; title: string; level: Level; task: string; skills: string[];
+  track_id: string; track_name: string; status: ModuleStatus; namespace: string;
+  lesson: {
+    concept: string; use_case: string; architecture: string;
+    commands: { command: string; explanation: string }[];
+    yaml: { title: string; explanation: string; content: string }[];
+  };
+  exercises: ExerciseView[];
+  quiz: { questions: { question: string; options: string[] }[]; best_percent: number | null; passed: boolean; pass_percent: number };
+}
+export interface CheckRun { passed: boolean; results: CheckResult[]; at: string; module_status: ModuleStatus }
+export interface QuizResult {
+  score: number; total: number; percent: number; passed: boolean; module_status: ModuleStatus;
+  results: { correct: boolean; answer: number; explanation: string }[];
 }
 export interface Track {
   id: string; name: string; description: string; status: Availability; phase: number; modules: Module[];
@@ -173,6 +195,15 @@ export const api = {
   tracks: () => req<Track[]>("/learn/tracks"),
   setProgress: (id: string, status: ModuleStatus) =>
     req(`/learn/modules/${encodeURIComponent(id)}/progress`, { method: "PUT", body: JSON.stringify({ status }) }),
+  lesson: (id: string) => req<LessonView>(`/learn/modules/${enc(id)}`),
+  checkExercise: (m: string, e: string) => req<CheckRun>(`/learn/modules/${enc(m)}/exercises/${enc(e)}/check`, { method: "POST" }),
+  setupExercise: (m: string, e: string) =>
+    req<{ namespace: string; output: string[] }>(`/learn/modules/${enc(m)}/exercises/${enc(e)}/setup`, { method: "POST" }),
+  resetExercise: (m: string, e: string) =>
+    req<{ namespace: string; output: string[] }>(`/learn/modules/${enc(m)}/exercises/${enc(e)}/reset`, { method: "POST" }),
+  solution: (m: string, e: string) => req<{ solution: string }>(`/learn/modules/${enc(m)}/exercises/${enc(e)}/solution`),
+  submitQuiz: (m: string, answers: number[]) =>
+    req<QuizResult>(`/learn/modules/${enc(m)}/quiz`, { method: "POST", body: JSON.stringify({ answers }) }),
   projects: () => req<Project[]>("/projects"),
   challenges: () => req<ChallengeInfo[]>("/challenges"),
   labs: () => req<Lab[]>("/labs"),
