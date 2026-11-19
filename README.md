@@ -12,21 +12,21 @@ real Kubernetes cluster on your laptop and gives you two ways to learn:
   [Ollama](https://ollama.com). It explains, demonstrates, quizzes you and helps
   you debug, and never runs a command without your approval.
 
-> **Status: Phase 2 (Terminal) of 11.** The infrastructure, dashboard, auth,
-> health checks, learning catalog and browser terminals (Linux, Kubernetes,
-> Docker) work today. CloudMart, lessons and the troubleshooting engine are next. Everything not built yet
+> **Status: Phase 3 (Kubernetes views) of 11.** The infrastructure, dashboard, auth,
+> health checks, learning catalog, browser terminals (Linux, Kubernetes,
+> Docker) and the Kubernetes explorer work today. CloudMart, lessons and the troubleshooting engine are next. Everything not built yet
 > is labelled **Planned** in the UI. See the [roadmap](#roadmap).
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
 ## Features
 
-| Available now (Phases 1–2) | Planned |
+| Available now (Phases 1–3) | Planned |
 |---|---|
-| One-command local cluster: Colima + 3-node kind, ingress, metrics-server | Deployments, services, logs, events · Phase 3 |
+| One-command local cluster: Colima + 3-node kind, ingress, metrics-server; start/stop from the UI | |
 | Browser terminals in hardened sandboxes, with tabs: Linux, Kubernetes, and Docker (own engine in a separate on-demand VM) | |
 | Live infrastructure health: Colima, Docker Engine, kind, kubectl, Helm, Kubernetes API | |
-| Live cluster summary, nodes and pods | CloudMart microservices app + lab reset · Phase 4 |
+| Kubernetes explorer: pods, deployments, services, events, namespaces, pod details, live logs, YAML | CloudMart microservices app + lab reset · Phase 4 |
 | Learn Mode catalog (15 tracks, 20 Kubernetes modules) with progress tracking | Lessons, exercises with automatic checks, quizzes · Phase 5 |
 | Projects and troubleshooting catalogs | 15 Kubernetes troubleshooting scenarios with 3 progressive hints · Phase 6 |
 | Local login, session cookies, Origin checks | Prometheus, Grafana, Loki · Phase 7 |
@@ -162,7 +162,7 @@ Configuration: copy `.env.example` to `backend/.env`.
 |---|---|---|
 | 1 | Foundation: repo, backend, frontend, DB, auth, dashboard, health checks | ✅ |
 | 2 | Terminal (xterm.js, isolated sandboxes): Linux, Kubernetes, Docker | ✅ |
-| 3 | Kubernetes explorer | |
+| 3 | Kubernetes explorer | ✅ |
 | 4 | CloudMart + lab management | |
 | 5 | Learning engine | |
 | 6 | Troubleshooting engine | |

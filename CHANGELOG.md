@@ -5,6 +5,16 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (Phase 3: Kubernetes views)
+- Kubernetes explorer: pods, deployments, services, events and namespaces with a namespace filter;
+  columns match `kubectl get`.
+- Pod details: container state and last state (exit codes), restarts, conditions and events; logs with
+  container picker, previous-container logs and live follow (server-sent events); YAML view for pods,
+  deployments, services, config maps, namespaces and nodes (never Secrets).
+- Kubernetes API errors are shown verbatim (e.g. `pods "x" not found`).
+- Start and stop the lab from the UI with the same scripts as `make up` / `make down`, with their
+  real output.
+
 ### Added (Phase 2: Terminal)
 - Browser terminals (xterm.js) with tabs, resize, clear, copy/paste, connection status and reconnect.
 - Each terminal is a disposable sandbox pod in `devopslab-terminal`: non-root, all capabilities

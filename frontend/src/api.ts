@@ -57,6 +57,36 @@ export interface AppSettings {
   ai: { enabled: boolean; provider: string; base_url: string; local: boolean; status: Availability; phase: number };
 }
 
+export interface NamespaceInfo { name: string; status: string; age_seconds: number | null; lab: boolean; managed: boolean }
+export interface Deployment {
+  namespace: string; name: string; ready: string; up_to_date: number; available: number;
+  age_seconds: number | null; images: string[]; healthy: boolean;
+}
+export interface Service {
+  namespace: string; name: string; type: string; cluster_ip: string | null; external_ip: string | null;
+  ports: string; selector: Record<string, string>; age_seconds: number | null;
+}
+export interface KubeEvent {
+  namespace: string; type: string; reason: string; object: string; message: string; count: number;
+  last_seen_seconds: number | null;
+}
+export interface ContainerInfo {
+  name: string; image: string; ready: boolean; restarts: number; state: string; state_detail: string | null;
+  last_state: string | null; last_state_detail: string | null; ports: string[];
+  requests: Record<string, string>; limits: Record<string, string>;
+}
+export interface PodDetail {
+  namespace: string; name: string; phase: string; node: string | null; pod_ip: string | null;
+  service_account: string; labels: Record<string, string>; age_seconds: number | null;
+  conditions: { type: string; status: string; reason: string | null; message: string | null }[];
+  containers: ContainerInfo[]; events: KubeEvent[];
+}
+export interface LabOperation {
+  action: "start" | "stop"; state: "running" | "succeeded" | "failed"; started_at: number;
+  finished_at: number | null; exit_code: number | null; output: string[];
+}
+export type YamlKind = "pod" | "deployment" | "service" | "namespace" | "node" | "configmap";
+
 export type TerminalProfileId = "linux" | "kubernetes" | "docker";
 export interface TerminalProfile {
   id: TerminalProfileId; name: string; available: boolean; description: string; phase?: number;
@@ -93,6 +123,32 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+const enc = encodeURIComponent;
+const nsq = (ns?: string) => (ns ? `?namespace=${enc(ns)}` : "");
+
+/** Plain-text endpoints (YAML, logs) still return the JSON error shape on failure. */
+async function text(path: string): Promise<string> {
+  const res = await fetch(`/api/v1${path}`, { credentials: "same-origin" });
+  if (res.ok) return res.text();
+  const body = await res.json().catch(() => null);
+  const err = body?.error ?? { code: "http_error", message: res.statusText || `HTTP ${res.status}` };
+  if (res.status === 401) unauthorizedListeners.forEach((l) => l());
+  throw new ApiError(res.status, err.code, err.message);
+}
+
+/** Live log lines over server-sent events. Returns a function that stops following. */
+export function followLogs(ns: string, name: string, container: string,
+  onLine: (line: string) => void, onEnd: (reason: string) => void): () => void {
+  const es = new EventSource(`/api/v1/cluster/pods/${enc(ns)}/${enc(name)}/logs?follow=true&tail=100&container=${enc(container)}`);
+  es.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (typeof msg.line === "string") onLine(msg.line);
+    if (msg.end) { onEnd(msg.end); es.close(); }
+  };
+  es.onerror = () => { onEnd("Live logs disconnected."); es.close(); };
+  return () => es.close();
+}
+
 export const api = {
   login: (token: string) => req<void>("/auth/login", { method: "POST", body: JSON.stringify({ token }) }),
   logout: () => req<void>("/auth/logout", { method: "POST" }),
@@ -111,6 +167,17 @@ export const api = {
   progress: () => req<ProgressSummary>("/progress/summary"),
   activity: (limit = 5) => req<ActivityItem[]>(`/activity/recent?limit=${limit}`),
   settings: () => req<AppSettings>("/settings"),
+  namespaces: () => req<NamespaceInfo[]>("/cluster/namespaces"),
+  deployments: (ns?: string) => req<Deployment[]>(`/cluster/deployments${nsq(ns)}`),
+  services: (ns?: string) => req<Service[]>(`/cluster/services${nsq(ns)}`),
+  events: (ns?: string) => req<KubeEvent[]>(`/cluster/events${nsq(ns)}`),
+  pod: (ns: string, name: string) => req<PodDetail>(`/cluster/pods/${enc(ns)}/${enc(name)}`),
+  yaml: (kind: YamlKind, name: string, ns?: string) =>
+    text(`/cluster/yaml/${kind}/${ns ? `${enc(ns)}/` : ""}${enc(name)}`),
+  logs: (ns: string, name: string, container: string, tail = 500, previous = false) =>
+    text(`/cluster/pods/${enc(ns)}/${enc(name)}/logs?container=${enc(container)}&tail=${tail}&previous=${previous}`),
+  labOperation: () => req<LabOperation | null>("/lab/operation"),
+  labAction: (action: "start" | "stop") => req<LabOperation>(`/lab/${action}`, { method: "POST" }),
   terminalProfiles: () => req<TerminalProfile[]>("/terminal/profiles"),
   terminalSessions: () => req<TerminalSession[]>("/terminal/sessions"),
   openTerminal: (profile: TerminalProfileId) =>

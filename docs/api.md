@@ -50,8 +50,13 @@ Base path `/api/v1`. JSON everywhere. Served on 127.0.0.1 only.
 | 2 | GET | `/terminal/sessions` | list own sessions |
 | 2 | DELETE | `/terminal/sessions/{id}` | close + delete pod |
 | 2 | WS | `/terminal/sessions/{id}/stream` | foreign Origin refused at the handshake (HTTP 403); then closes with 4401 (not logged in), 4404 (not found) or 4409 (not ready). Client sends JSON `{type:"input",data}` / `{type:"resize",cols,rows}`; server sends binary output and JSON `{type:"status",state,reason}` |
-| 3 | GET | `/cluster/{namespaces,deployments,services,events}` | `?namespace=` |
-| 3 | GET | `/cluster/pods/{ns}/{name}/logs` | `?container=&tail=&follow=` (SSE when follow) |
+| 3 | GET | `/cluster/{namespaces,deployments,services,events}` | `?namespace=`; columns match `kubectl get` |
+| 3 | GET | `/cluster/pods/{ns}/{name}` | containers (state, last state, restarts), conditions, events |
+| 3 | GET | `/cluster/yaml/{kind}/[{ns}/]{name}` | `text/plain`; kinds pod, deployment, service, configmap, namespace, node (never Secret); managedFields stripped |
+| 3 | GET | `/cluster/pods/{ns}/{name}/logs` | `?container=&tail=&previous=&follow=`; text, or SSE `{line}` … `{end}` when following (max 30 min) |
+| 3 | GET | `/lab/operation` | last start/stop: state, exit code, last 300 output lines |
+| 3 | POST | `/lab/{start\|stop}` | `202`; runs `infra/scripts/up.sh` / `down.sh` (same as `make up` / `make down`); `409` if one is running |
+|   |   | Kubernetes API errors | passed through verbatim: `{"error":{"code":"kubernetes_error","message":"pods \"x\" not found","detail":{"status":404}}}`; unreachable cluster is `503 cluster_unreachable` |
 | 4 | POST | `/labs` | `{kind, ref_id}` → `202 {lab}` |
 | 4 | POST | `/labs/{id}/{start\|stop\|reset}` | `202`; status via `GET /labs/{id}` |
 | 4 | DELETE | `/labs/{id}` | `202` |
