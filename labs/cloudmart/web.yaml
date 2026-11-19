@@ -19,6 +19,7 @@ spec:
     metadata:
       labels: {app: web}
     spec:
+      enableServiceLinks: false  # service links would inject REDIS_PORT=tcp://..., clashing with app config
       nodeSelector: {devopslab.io/tier: app}
       securityContext:
         runAsNonRoot: true

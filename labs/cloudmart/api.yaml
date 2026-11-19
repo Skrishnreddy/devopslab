@@ -30,6 +30,7 @@ spec:
     metadata:
       labels: {app: api}
     spec:
+      enableServiceLinks: false  # service links would inject REDIS_PORT=tcp://..., clashing with app config
       nodeSelector: {devopslab.io/tier: app}
       securityContext:
         runAsNonRoot: true
@@ -47,6 +48,10 @@ spec:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef: {name: cloudmart-db, key: password}
+          startupProbe:  # first start waits for PostgreSQL (migrations, with retries) before serving
+            httpGet: {path: /api/health, port: http}
+            periodSeconds: 5
+            failureThreshold: 36
           readinessProbe:
             httpGet: {path: /api/ready, port: http}
             periodSeconds: 5

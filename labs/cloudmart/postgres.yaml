@@ -21,6 +21,7 @@ spec:
     metadata:
       labels: {app: postgres}
     spec:
+      enableServiceLinks: false  # service links would inject REDIS_PORT=tcp://..., clashing with app config
       nodeSelector: {devopslab.io/tier: data}
       containers:
         - name: postgres

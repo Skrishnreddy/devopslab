@@ -179,6 +179,9 @@ def test_cloudmart_lab_is_well_formed():
     p = NamespaceLabProvisioner(REPO_ROOT / "labs")
     assert p.namespaces("cloudmart", docs) == ["lab-cloudmart"]
     for x in docs:
+        pod = x.get("spec", {}).get("template", {}).get("spec")
+        if pod:  # Docker-style service links inject e.g. REDIS_PORT=tcp://..., which broke the API
+            assert pod.get("enableServiceLinks") is False, x["metadata"]["name"]
         for c in (x.get("spec", {}).get("template", {}).get("spec", {}).get("containers") or []):
             assert c.get("resources", {}).get("limits"), f"{x['metadata']['name']} has no limits"
             assert ":latest" not in c["image"] and ":" in c["image"]
