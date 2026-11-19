@@ -1,0 +1,171 @@
+# yaml-language-server: $schema=../../schemas/lesson.schema.json
+id: k8s-04-deployments
+concept: |
+  A **Deployment** is how you run a stateless app. You declare the Pod
+  template and the replica count; the Deployment manages ReplicaSets to get
+  there.
+
+  When you change the template (a new image, an env var), the Deployment
+  starts a **rolling update**: it creates a new ReplicaSet and shifts Pods from
+  the old one to the new one a few at a time. It only continues as new Pods
+  become **Ready**, so a broken version stalls instead of taking everything
+  down. `maxSurge` and `maxUnavailable` control the pace.
+
+  Each template change is a **revision**. `kubectl rollout undo` goes back to
+  the previous ReplicaSet. **Readiness probes** matter here: a Pod only counts
+  as Ready, and only gets traffic, once its probe passes.
+use_case: |
+  Releasing a new version, scaling for traffic and rolling back a bad release
+  are everyday Deployment work. When a rollout hangs, `kubectl rollout status`
+  tells you it's stuck and the new Pods' state tells you why (bad image, crash,
+  failing probe).
+architecture: |
+  Deployment shop (replicas 3, image v2)
+     ├── ReplicaSet shop-7d4f (image v1)  3 → 2 → 1 → 0
+     └── ReplicaSet shop-9c1a (image v2)  0 → 1 → 2 → 3
+  each step waits for the new Pod to be Ready (readiness probe)
+commands:
+  - command: kubectl create deployment shop --image=nginx:1.27-alpine --replicas=2
+    explanation: Create a Deployment with 2 replicas.
+  - command: kubectl scale deployment shop --replicas=3
+    explanation: Change the replica count.
+  - command: kubectl set image deployment/shop nginx=nginx:1.27.3-alpine
+    explanation: Change the image. This starts a rolling update.
+  - command: kubectl rollout status deployment/shop
+    explanation: Wait for the rollout to finish, or show where it's stuck.
+  - command: kubectl rollout history deployment/shop
+    explanation: Revisions. `kubectl rollout undo deployment/shop` goes back one.
+  - command: kubectl edit deployment shop
+    explanation: Edit the live object in your editor (vi). Saving applies the change.
+yaml:
+  - title: A Deployment with a readiness probe
+    explanation: The probe must hit a port the container really listens on, or no Pod ever becomes Ready.
+    content: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: catalog
+      spec:
+        replicas: 2
+        selector:
+          matchLabels: {app: catalog}
+        template:
+          metadata:
+            labels: {app: catalog}
+          spec:
+            containers:
+              - name: web
+                image: nginx:1.27-alpine
+                ports:
+                  - containerPort: 80
+                readinessProbe:
+                  httpGet: {path: /, port: 80}
+                  periodSeconds: 5
+exercises:
+  - id: release
+    title: Deploy, scale and release a new version
+    instructions: |
+      1. Create a Deployment `shop` running `nginx:1.27-alpine` with 2 replicas.
+      2. Scale it to 3.
+      3. Release `nginx:1.27.3-alpine` (the container is named `nginx`) and wait
+         for `kubectl rollout status` to report success.
+    expected_output: |
+      deployment "shop" successfully rolled out
+    checks:
+      - type: field
+        description: shop wants 3 replicas
+        kind: Deployment
+        name: shop
+        path: spec.replicas
+        equals: 3
+      - type: field
+        description: shop runs nginx:1.27.3-alpine
+        kind: Deployment
+        name: shop
+        path: spec.template.spec.containers[0].image
+        equals: nginx:1.27.3-alpine
+      - type: rollout_ready
+        description: The rollout finished and all 3 replicas are ready
+        name: shop
+        min: 3
+    cleanup:
+      - {kind: Deployment, name: shop}
+    solution: |
+      kubectl create deployment shop --image=nginx:1.27-alpine --replicas=2
+      kubectl scale deployment shop --replicas=3
+      kubectl set image deployment/shop nginx=nginx:1.27.3-alpine
+      kubectl rollout status deployment/shop
+  - id: stuck-rollout
+    title: "Troubleshoot: Pods Running but never Ready"
+    kind: troubleshooting
+    instructions: |
+      Press **Set up**. The Deployment `catalog` has Pods in `Running` state, but
+      READY stays `0/1` and the rollout never completes. Find the cause and fix
+      the Deployment.
+    expected_output: |
+      NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+      catalog   2/2     2            2           3m
+    hint: "`kubectl describe pod` on one of them: look for Readiness probe failed in the events. Which port does nginx listen on?"
+    setup: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: catalog
+      spec:
+        replicas: 2
+        selector:
+          matchLabels: {app: catalog}
+        template:
+          metadata:
+            labels: {app: catalog}
+          spec:
+            containers:
+              - name: web
+                image: nginx:1.27-alpine
+                ports:
+                  - containerPort: 80
+                readinessProbe:
+                  httpGet: {path: /, port: 8081}
+                  periodSeconds: 5
+                resources:
+                  requests: {cpu: 20m, memory: 32Mi}
+                  limits: {cpu: 100m, memory: 64Mi}
+    checks:
+      - type: field
+        description: The readiness probe checks port 80
+        kind: Deployment
+        name: catalog
+        path: spec.template.spec.containers[0].readinessProbe.httpGet.port
+        equals: 80
+      - type: rollout_ready
+        description: catalog's rollout finished and both replicas are ready
+        name: catalog
+        min: 2
+    cleanup:
+      - {kind: Deployment, name: catalog}
+    solution: |
+      The readiness probe calls port 8081, but nginx listens on 80, so every
+      probe fails ("connection refused") and the Pods never become Ready.
+
+        kubectl edit deployment catalog      # readinessProbe.httpGet.port: 80
+        # or:
+        kubectl patch deployment catalog --type=json \
+          -p='[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/port","value":80}]'
+        kubectl rollout status deployment/catalog
+quiz:
+  - question: What does a Deployment create when you change its Pod template?
+    options: [A new Deployment, A new ReplicaSet, New nodes, Nothing until you restart the Pods]
+    answer: 1
+    explanation: Each template change makes a new ReplicaSet; the rollout scales it up while the old one scales down.
+  - question: A new version's Pods never become Ready. What does the rolling update do?
+    options: [Replaces all old Pods anyway, Stalls and keeps the old Pods serving, Deletes the Deployment, Rolls back automatically]
+    answer: 1
+    explanation: The rollout only proceeds as new Pods become Ready, so the old ReplicaSet keeps serving. Kubernetes does not roll back by itself.
+  - question: Which command returns a Deployment to its previous revision?
+    options: [kubectl rollout undo deployment/shop, kubectl rollback shop, kubectl delete rs --latest, kubectl apply --previous]
+    answer: 0
+    explanation: rollout undo scales the previous ReplicaSet back up.
+  - question: A Pod is Running but READY shows 0/1. The most likely cause?
+    options: [The image doesn't exist, The readiness probe is failing, The node is down, The Service has no selector]
+    answer: 1
+    explanation: Running means the container started; READY 0/1 means its readiness probe hasn't passed, so it gets no traffic.

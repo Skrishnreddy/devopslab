@@ -1,0 +1,422 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "description": "One automatic check, run read-only against the learner's namespace (lab-playground).",
+      "properties": {
+        "type": {
+          "enum": [
+            "exists",
+            "absent",
+            "field",
+            "pods_ready",
+            "rollout_ready",
+            "endpoints",
+            "answer"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "description": {
+          "description": "What the learner sees, e.g. 'Pod web is Running and Ready'",
+          "title": "Description",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "Pod",
+                "Deployment",
+                "ReplicaSet",
+                "Service",
+                "Endpoints",
+                "ConfigMap"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "selector": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "Label selector (pods_ready)",
+          "title": "Selector",
+          "type": "object"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Dotted path into the object, e.g. spec.containers[0].image",
+          "title": "Path"
+        },
+        "equals": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equals"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum count (pods_ready, endpoints)",
+          "title": "Min"
+        },
+        "all_ready": {
+          "default": false,
+          "description": "pods_ready: every matching pod must be ready",
+          "title": "All Ready",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "enum": [
+                "node_count",
+                "control_plane_node",
+                "server_minor_version"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "answer: the real cluster value the learner must find",
+          "title": "Source"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "answer: ConfigMap key holding the learner's answer",
+          "title": "Key"
+        }
+      },
+      "required": [
+        "type",
+        "description"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "Command": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command",
+        "explanation"
+      ],
+      "title": "Command",
+      "type": "object"
+    },
+    "Exercise": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "kind": {
+          "default": "practice",
+          "enum": [
+            "practice",
+            "troubleshooting"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "instructions": {
+          "title": "Instructions",
+          "type": "string"
+        },
+        "expected_output": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "What the learner should see when it works",
+          "title": "Expected Output"
+        },
+        "setup": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Manifests applied to lab-playground first (troubleshooting)",
+          "title": "Setup"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "cleanup": {
+          "default": [],
+          "description": "Objects deleted from lab-playground on reset",
+          "items": {
+            "$ref": "#/$defs/ResourceRef"
+          },
+          "title": "Cleanup",
+          "type": "array"
+        },
+        "hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hint"
+        },
+        "solution": {
+          "title": "Solution",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "instructions",
+        "checks",
+        "solution"
+      ],
+      "title": "Exercise",
+      "type": "object"
+    },
+    "Question": {
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 2,
+          "title": "Options",
+          "type": "array"
+        },
+        "answer": {
+          "description": "Index of the correct option",
+          "minimum": 0,
+          "title": "Answer",
+          "type": "integer"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "options",
+        "answer",
+        "explanation"
+      ],
+      "title": "Question",
+      "type": "object"
+    },
+    "ResourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "Pod",
+            "Deployment",
+            "ReplicaSet",
+            "Service",
+            "Endpoints",
+            "ConfigMap"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ],
+      "title": "ResourceRef",
+      "type": "object"
+    },
+    "YamlExample": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "explanation",
+        "content"
+      ],
+      "title": "YamlExample",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "description": "The module id this lesson belongs to",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,63}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "concept": {
+      "title": "Concept",
+      "type": "string"
+    },
+    "use_case": {
+      "title": "Use Case",
+      "type": "string"
+    },
+    "architecture": {
+      "title": "Architecture",
+      "type": "string"
+    },
+    "commands": {
+      "items": {
+        "$ref": "#/$defs/Command"
+      },
+      "minItems": 1,
+      "title": "Commands",
+      "type": "array"
+    },
+    "yaml": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/YamlExample"
+      },
+      "title": "Yaml",
+      "type": "array"
+    },
+    "exercises": {
+      "items": {
+        "$ref": "#/$defs/Exercise"
+      },
+      "minItems": 1,
+      "title": "Exercises",
+      "type": "array"
+    },
+    "quiz": {
+      "items": {
+        "$ref": "#/$defs/Question"
+      },
+      "minItems": 3,
+      "title": "Quiz",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "concept",
+    "use_case",
+    "architecture",
+    "commands",
+    "exercises",
+    "quiz"
+  ],
+  "title": "Lesson",
+  "type": "object"
+}

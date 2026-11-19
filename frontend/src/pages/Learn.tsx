@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CheckCircle2, Circle, CircleDot } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, CheckCircle2, Circle, CircleDot } from "lucide-react";
 import { api, type Level, type Module, type ModuleStatus } from "../api";
 import { useApi } from "../lib/useApi";
 import { Badge, Card, ErrorBox, PageHeader, PlannedBadge, Progress } from "../components/ui";
@@ -26,10 +27,14 @@ function ModuleRow({ m, onChange }: { m: Module; onChange: (s: ModuleStatus) => 
       </button>
       <span className="w-6 font-mono text-sm text-ink-400">{String(m.order).padStart(2, "0")}</span>
       <div className="min-w-0 flex-1">
-        <div className="font-medium text-white">{m.title}</div>
+        {m.lesson
+          ? <Link to={`/learn/${m.id}`} className="font-medium text-white hover:text-accent">{m.title}</Link>
+          : <div className="font-medium text-white">{m.title}</div>}
         <div className="text-sm text-ink-400">{m.task}</div>
       </div>
-      <span className="hidden sm:block"><PlannedBadge phase={m.phase} label="Lesson" /></span>
+      {m.lesson
+        ? <Link to={`/learn/${m.id}`} aria-label={`Open lesson ${m.title}`} className="flex items-center gap-1 text-sm text-accent hover:underline">Lesson <ArrowRight className="h-4 w-4" /></Link>
+        : <span className="hidden sm:block"><Badge>lesson planned</Badge></span>}
     </li>
   );
 }
@@ -54,7 +59,8 @@ export default function Learn() {
         <Card title="Kubernetes track" action={<span className="text-sm text-ink-400">{k8s.progress.completed}/{k8s.progress.total} completed</span>}>
           <Progress percent={k8s.progress.percent} label="Kubernetes progress" />
           <p className="mt-3 text-xs text-ink-400">
-            Track your progress with the status icon. Full lessons, exercises with automatic checks and quizzes arrive in Phase 5.
+            Open a lesson to read it, do its exercises in a Kubernetes terminal and press Check: the checks read your real cluster.
+            A module completes when every exercise passes and you pass its quiz. You can also set the status by hand with the icon.
           </p>
           <div className="mt-5 space-y-6">
             {LEVELS.map((lvl) => (

@@ -1,0 +1,159 @@
+# yaml-language-server: $schema=../../schemas/lesson.schema.json
+id: k8s-01-architecture
+concept: |
+  A Kubernetes cluster is a set of machines (nodes) run by a **control plane**.
+  You never start containers on a machine yourself. You tell the API server what
+  you want (a *desired state*), and controllers keep working until the cluster
+  matches it.
+
+  The control plane has four parts. The **API server** (`kube-apiserver`) is the
+  only door in: kubectl, the dashboard and every controller talk to it. **etcd**
+  is the database that stores every object. The **scheduler** picks a node for
+  each new Pod. The **controller manager** runs the loops that keep Deployments,
+  ReplicaSets, Endpoints and the rest at their desired state.
+
+  Every node runs the **kubelet**, which starts the containers it is told to run
+  through the container runtime (containerd), and **kube-proxy**, which
+  programs the Service networking. Cluster add-ons such as **CoreDNS** run as
+  ordinary Pods in `kube-system`.
+use_case: |
+  When something breaks, knowing which component does what tells you where to
+  look. A Pod stuck in `Pending` is the scheduler's business: read the events
+  to see why no node fits. A Pod that was scheduled but won't start is the
+  kubelet's: look at its container state. If kubectl can't connect at all, the
+  API server is the problem.
+architecture: |2
+                 kubectl / DevOpsLab
+                        │ HTTPS
+            ┌───────────▼────────────── control plane node ──┐
+            │  kube-apiserver ◄──► etcd                        │
+            │     ▲        ▲                                   │
+            │ scheduler  controller-manager                    │
+            └─────┼───────────────────────────────────────────┘
+                  │ watches / updates
+       ┌──────────┴──────────┐            ┌─────────────────────┐
+       │ worker node          │            │ worker node          │
+       │ kubelet → containerd │    ...     │ kubelet → containerd │
+       │ kube-proxy, Pods     │            │ kube-proxy, Pods     │
+       └──────────────────────┘            └─────────────────────┘
+
+  Your DevOpsLab cluster `cloudmart` is kind: each "node" is a container in
+  the Colima VM. One control-plane node and two workers.
+commands:
+  - command: kubectl get nodes -o wide
+    explanation: Every node, its role, Kubernetes version, internal IP and container runtime.
+  - command: kubectl version
+    explanation: Client and server versions. The server version is the API server's.
+  - command: kubectl get pods -n kube-system -o wide
+    explanation: The control plane components and add-ons, and which node each runs on.
+  - command: kubectl describe node cloudmart-worker
+    explanation: Capacity, allocated resources, conditions (Ready, MemoryPressure) and the Pods on that node.
+  - command: kubectl get events --sort-by=.lastTimestamp
+    explanation: What the scheduler and kubelet did recently in the current namespace. The first place to look when something is stuck.
+yaml:
+  - title: A Pod the scheduler can't place
+    explanation: |
+      `nodeSelector` limits a Pod to nodes with matching labels. If no node has
+      `devopslab.io/tier: gpu`, the scheduler leaves the Pod Pending and records
+      a FailedScheduling event saying why.
+    content: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: scheduler-demo
+        labels: {app: scheduler-demo}
+      spec:
+        nodeSelector:
+          devopslab.io/tier: gpu
+        containers:
+          - name: web
+            image: nginx:1.27-alpine
+exercises:
+  - id: cluster-facts
+    title: Map your cluster
+    instructions: |
+      Open a **Kubernetes** terminal. Find out how many nodes the cluster has
+      and the name of the control-plane node, then record your answers in a
+      ConfigMap called `cluster-facts` in `lab-playground` (the terminal's
+      default namespace):
+
+          kubectl create configmap cluster-facts \
+            --from-literal=nodes=<number> --from-literal=control-plane=<node name>
+
+      Made a mistake? `kubectl delete configmap cluster-facts` and create it again.
+    expected_output: |
+      configmap/cluster-facts created
+    hint: The ROLES column of `kubectl get nodes` shows which node is the control plane.
+    checks:
+      - type: answer
+        description: nodes is the real number of nodes
+        name: cluster-facts
+        key: nodes
+        source: node_count
+      - type: answer
+        description: control-plane is the real control-plane node
+        name: cluster-facts
+        key: control-plane
+        source: control_plane_node
+    cleanup:
+      - {kind: ConfigMap, name: cluster-facts}
+    solution: |
+      kubectl get nodes        # 3 nodes; cloudmart-control-plane has the control-plane role
+      kubectl create configmap cluster-facts --from-literal=nodes=3 --from-literal=control-plane=cloudmart-control-plane
+  - id: pending-pod
+    title: "Troubleshoot: a Pod stuck in Pending"
+    kind: troubleshooting
+    instructions: |
+      Press **Set up** to create the Pod `scheduler-demo`. It never starts.
+      Find out which component is refusing it and why, then get it running.
+      Keep the name `scheduler-demo` and the label `app=scheduler-demo`.
+    expected_output: |
+      NAME             READY   STATUS    RESTARTS   AGE
+      scheduler-demo   1/1     Running   0          10s
+    hint: Pending means not scheduled yet. `kubectl describe pod scheduler-demo` and read the Events.
+    setup: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: scheduler-demo
+        labels: {app: scheduler-demo}
+      spec:
+        nodeSelector:
+          devopslab.io/tier: gpu
+        containers:
+          - name: web
+            image: nginx:1.27-alpine
+    checks:
+      - type: pods_ready
+        description: Pod scheduler-demo is Running and Ready
+        selector: {app: scheduler-demo}
+        min: 1
+        all_ready: true
+    cleanup:
+      - {kind: Pod, name: scheduler-demo}
+    solution: |
+      The scheduler can't find a node labelled devopslab.io/tier=gpu
+      (event: "0/3 nodes are available: ... didn't match Pod's node affinity/selector").
+      A Pod's nodeSelector can't be edited, so recreate it without the selector
+      (or with a label that exists, such as devopslab.io/tier: app):
+
+        kubectl get pod scheduler-demo -o yaml > pod.yaml   # remove nodeSelector, status and metadata noise
+        kubectl delete pod scheduler-demo
+        kubectl run scheduler-demo --image=nginx:1.27-alpine --labels=app=scheduler-demo
+quiz:
+  - question: Which component decides which node a new Pod runs on?
+    options: [kubelet, kube-scheduler, kube-proxy, etcd]
+    answer: 1
+    explanation: The scheduler watches for Pods without a node and binds each to a node that fits. The kubelet on that node then starts it.
+  - question: Where does Kubernetes store the state of every object?
+    options: [In each node's kubelet, In etcd, In the container runtime, In CoreDNS]
+    answer: 1
+    explanation: etcd is the cluster's key-value store. Only the API server talks to it.
+  - question: kubectl talks to which component?
+    options: [The API server, etcd directly, The kubelet on each node, The scheduler]
+    answer: 0
+    explanation: Everything goes through kube-apiserver, which authenticates, authorizes and validates each request.
+  - question: A Pod has been Pending for 5 minutes. What do you check first?
+    options: [The container logs, The Pod's events (kubectl describe pod), The Service endpoints, Restart the kubelet]
+    answer: 1
+    explanation: A Pending Pod has no running container, so there are no logs yet. Its events say why the scheduler can't place it.

@@ -12,23 +12,23 @@ real Kubernetes cluster on your laptop and gives you two ways to learn:
   [Ollama](https://ollama.com). It explains, demonstrates, quizzes you and helps
   you debug, and never runs a command without your approval.
 
-> **Status: Phase 4 (CloudMart and labs) of 11.** The infrastructure, dashboard, auth,
+> **Status: Phase 5 (Learning engine) of 11.** The infrastructure, dashboard, auth,
 > health checks, learning catalog, browser terminals (Linux, Kubernetes,
-> Docker), the Kubernetes explorer and the CloudMart lab work today. Lessons and the troubleshooting engine are next. Everything not built yet
+> Docker), the Kubernetes explorer, the CloudMart lab and the first five Kubernetes lessons work today. The troubleshooting engine is next. Everything not built yet
 > is labelled **Planned** in the UI. See the [roadmap](#roadmap).
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
 ## Features
 
-| Available now (Phases 1–4) | Planned |
+| Available now (Phases 1–5) | Planned |
 |---|---|
 | One-command local cluster: Colima + 3-node kind, ingress, metrics-server; start/stop from the UI | |
 | Browser terminals in hardened sandboxes, with tabs: Linux, Kubernetes, and Docker (own engine in a separate on-demand VM) | |
 | Live infrastructure health: Colima, Docker Engine, kind, kubectl, Helm, Kubernetes API | |
 | Kubernetes explorer: pods, deployments, services, events, namespaces, pod details, live logs, YAML | |
 | CloudMart shop (React, FastAPI, PostgreSQL, Redis, Ingress) at http://localhost:8080: deploy, stop, start, reset, delete from the UI, with step-by-step errors, quotas, usage and a 4 h auto-stop | CloudMart Helm chart |
-| Learn Mode catalog (15 tracks, 20 Kubernetes modules) with progress tracking | Lessons, exercises with automatic checks, quizzes · Phase 5 |
+| Learn Mode catalog (15 tracks, 20 Kubernetes modules) with progress tracking; full lessons for Kubernetes modules 1–5 (architecture, Pods, ReplicaSets, Deployments, Services): concept, commands, YAML, exercises checked against your real cluster, troubleshooting exercises, quizzes | Lessons for the other 15 Kubernetes modules and the other tracks |
 | Projects and troubleshooting catalogs | 15 Kubernetes troubleshooting scenarios with 3 progressive hints · Phase 6 |
 | Local login, session cookies, Origin checks | Prometheus, Grafana, Loki · Phase 7 |
 | Content as YAML with JSON Schemas | Trivy, Kyverno, RBAC, NetworkPolicies · Phase 8 |
@@ -165,7 +165,7 @@ Configuration: copy `.env.example` to `backend/.env`.
 | 2 | Terminal (xterm.js, isolated sandboxes): Linux, Kubernetes, Docker | ✅ |
 | 3 | Kubernetes explorer | ✅ |
 | 4 | CloudMart + lab management | ✅ |
-| 5 | Learning engine | |
+| 5 | Learning engine | ✅ |
 | 6 | Troubleshooting engine | |
 | 7 | Observability | |
 | 8 | DevSecOps | |

@@ -6,6 +6,7 @@ import AITeacher from "./pages/AITeacher";
 import Dashboard from "./pages/Dashboard";
 import Kubernetes from "./pages/Kubernetes";
 import Learn from "./pages/Learn";
+import Module from "./pages/Module";
 import Login from "./pages/Login";
 import Projects from "./pages/Projects";
 import Settings from "./pages/Settings";
@@ -29,6 +30,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="learn" element={<Learn />} />
+          <Route path="learn/:moduleId" element={<Module />} />
           <Route path="kubernetes" element={<Kubernetes />} />
           <Route path="topics/:id" element={<Topic />} />
           <Route path="projects" element={<Projects />} />

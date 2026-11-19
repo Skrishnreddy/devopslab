@@ -261,6 +261,12 @@ class KindCluster:
         except Exception as e:
             raise ClusterUnavailable(f"Kubernetes API unreachable: {e.__class__.__name__}: {e}"[:400]) from e
 
+    def raw_get(self, path: str, params: dict[str, str] | None = None) -> dict:
+        """GET an API path and return the JSON as-is (used by lesson checks)."""
+        api = self._api()
+        return self._call(api.call_api, path, "GET", query_params=list((params or {}).items()),
+                          response_type="object", auth_settings=["BearerToken"], _return_http_data_only=True)
+
     def usage(self, namespaces: list[str]) -> dict:
         """Live CPU/memory from metrics-server plus quota usage, summed over a lab's namespaces."""
         api = self._api()

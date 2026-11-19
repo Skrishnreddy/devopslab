@@ -1,0 +1,173 @@
+# yaml-language-server: $schema=../../schemas/lesson.schema.json
+id: k8s-03-replicasets
+concept: |
+  A **ReplicaSet** keeps a set number of identical Pods running. It has three
+  parts: `replicas` (how many), a **selector** (which Pods count as its own) and
+  a Pod **template** (what to create when there are too few).
+
+  Its controller loops forever: count the Pods matching the selector, then
+  create Pods from the template if there are too few or delete some if there
+  are too many. Delete a Pod and a new one appears within seconds; that is
+  self-healing.
+
+  The selector is the important part. A ReplicaSet owns *any* Pod whose labels
+  match, including Pods it didn't create. You rarely create ReplicaSets
+  yourself (Deployments manage them for you), but they are what keeps your Pods
+  alive.
+use_case: |
+  Every Deployment works through ReplicaSets, so when a Deployment shows the
+  wrong number of Pods you look at its ReplicaSet: `kubectl get rs` shows
+  DESIRED, CURRENT and READY. Understanding label ownership also explains odd
+  bugs, such as a hand-made Pod being "adopted" and counted as a replica.
+architecture: |
+  ReplicaSet rs-web (replicas: 3, selector app=rs-web)
+        │ creates from template, counts by label
+        ├── Pod rs-web-x8k2p  (app=rs-web)
+        ├── Pod rs-web-q91mz  (app=rs-web)
+        └── Pod rs-web-7hd2c  (app=rs-web)
+  delete one → count is 2 → controller creates a replacement
+commands:
+  - command: kubectl apply -f rs.yaml
+    explanation: Create the ReplicaSet from a manifest (below).
+  - command: kubectl get rs
+    explanation: DESIRED, CURRENT and READY replicas for each ReplicaSet.
+  - command: kubectl get pods -l app=rs-web --show-labels
+    explanation: The Pods the selector matches, with their labels.
+  - command: kubectl delete pod <one of the pods>
+    explanation: Watch a replacement appear with `kubectl get pods -w`.
+  - command: kubectl scale rs rs-web --replicas=3
+    explanation: Change the desired count.
+  - command: kubectl describe rs rs-web
+    explanation: Selector, Pod status counts and the controller's events (SuccessfulCreate, SuccessfulDelete).
+yaml:
+  - title: rs.yaml
+    explanation: The selector must match the template's labels, or the API server rejects the ReplicaSet.
+    content: |
+      apiVersion: apps/v1
+      kind: ReplicaSet
+      metadata:
+        name: rs-web
+      spec:
+        replicas: 3
+        selector:
+          matchLabels: {app: rs-web}
+        template:
+          metadata:
+            labels: {app: rs-web}
+          spec:
+            containers:
+              - name: web
+                image: nginx:1.27-alpine
+                resources:
+                  requests: {cpu: 20m, memory: 32Mi}
+                  limits: {cpu: 100m, memory: 64Mi}
+exercises:
+  - id: self-healing
+    title: Keep three replicas running
+    instructions: |
+      Save the `rs.yaml` example above in the terminal (`cat > rs.yaml`, paste,
+      then Ctrl+D) and apply it. When three Pods are Ready, delete one of them
+      and watch the ReplicaSet replace it. Press **Check** when three are Ready again.
+    expected_output: |
+      NAME     DESIRED   CURRENT   READY   AGE
+      rs-web   3         3         3       1m
+    checks:
+      - type: field
+        description: ReplicaSet rs-web wants 3 replicas
+        kind: ReplicaSet
+        name: rs-web
+        path: spec.replicas
+        equals: 3
+      - type: field
+        description: All 3 replicas are ready
+        kind: ReplicaSet
+        name: rs-web
+        path: status.readyReplicas
+        equals: 3
+      - type: pods_ready
+        description: 3 Pods labelled app=rs-web are Ready
+        selector: {app: rs-web}
+        min: 3
+        all_ready: true
+    cleanup:
+      - {kind: ReplicaSet, name: rs-web}
+    solution: |
+      kubectl apply -f rs.yaml
+      kubectl get pods -l app=rs-web
+      kubectl delete pod <one-of-them>
+      kubectl get rs rs-web -w
+  - id: adopted-pod
+    title: "Troubleshoot: a replica that never serves"
+    kind: troubleshooting
+    instructions: |
+      Press **Set up**. The ReplicaSet `cache` wants 2 replicas, but only one
+      healthy Pod ever runs and the ReplicaSet reports it is satisfied. Find out
+      why and get 2 healthy `app=cache` Pods running, with no broken ones.
+      Don't change the ReplicaSet.
+    expected_output: |
+      NAME          READY   STATUS    RESTARTS   AGE
+      cache-4kx9w   1/1     Running   0          2m
+      cache-p2m7d   1/1     Running   0          10s
+    hint: Compare the labels of every Pod with the ReplicaSet's selector (`--show-labels`). Who created each Pod?
+    setup: |
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: cache-manual
+        labels: {app: cache}
+      spec:
+        containers:
+          - name: cache
+            image: redis:7.4.1-alpinee
+      ---
+      apiVersion: apps/v1
+      kind: ReplicaSet
+      metadata:
+        name: cache
+      spec:
+        replicas: 2
+        selector:
+          matchLabels: {app: cache}
+        template:
+          metadata:
+            labels: {app: cache}
+          spec:
+            containers:
+              - name: cache
+                image: redis:7.4.1-alpine
+                resources:
+                  requests: {cpu: 20m, memory: 32Mi}
+                  limits: {cpu: 100m, memory: 64Mi}
+    checks:
+      - type: pods_ready
+        description: 2 app=cache Pods are Ready and none are broken
+        selector: {app: cache}
+        min: 2
+        all_ready: true
+      - type: absent
+        description: The hand-made Pod cache-manual is gone
+        kind: Pod
+        name: cache-manual
+    cleanup:
+      - {kind: ReplicaSet, name: cache}
+      - {kind: Pod, name: cache-manual}
+    solution: |
+      cache-manual was created by hand with the label app=cache, so the
+      ReplicaSet adopted it and counts it as one of its 2 replicas, even though
+      its image can't be pulled. Delete it and the ReplicaSet creates a healthy one:
+
+        kubectl get pods -l app=cache --show-labels
+        kubectl delete pod cache-manual
+quiz:
+  - question: How does a ReplicaSet decide which Pods belong to it?
+    options: [By Pod name prefix, By its label selector, By the node they run on, Only Pods it created itself]
+    answer: 1
+    explanation: Any Pod whose labels match the selector is counted, even one created by hand.
+  - question: You delete a Pod owned by a ReplicaSet with replicas 3. What happens?
+    options: [The ReplicaSet scales down to 2, Nothing until you re-apply, A new Pod is created from the template, The ReplicaSet is deleted too]
+    answer: 2
+    explanation: The controller sees 2 matching Pods, wants 3, and creates one from its template.
+  - question: Why do you rarely create ReplicaSets yourself?
+    options: [They are deprecated, Deployments create and manage them and add rolling updates, They only work in kube-system, They can't be scaled]
+    answer: 1
+    explanation: A Deployment creates a new ReplicaSet for every template change and moves Pods across, which gives you rollouts and rollbacks.

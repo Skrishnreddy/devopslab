@@ -7,7 +7,7 @@ import yaml
 from pydantic import BaseModel, ValidationError
 
 from ..core.config import settings
-from .models import Challenge, Project, Track
+from .models import SETUP_KINDS, Challenge, Lesson, Project, Track
 
 
 class ContentError(Exception):
@@ -19,6 +19,7 @@ class Content:
     tracks: list[Track] = field(default_factory=list)
     projects: list[Project] = field(default_factory=list)
     challenges: list[Challenge] = field(default_factory=list)
+    lessons: dict[str, Lesson] = field(default_factory=dict)
 
     def module(self, module_id: str):
         for t in self.tracks:
@@ -53,12 +54,42 @@ def load(root: Path | None = None) -> Content:
         projects=sorted(_load_dir(root / "projects", Project), key=lambda p: p.phase),
         challenges=_load_dir(root / "challenges", Challenge),
     )
+    lessons = _load_dir(root / "lessons", Lesson) if (root / "lessons").exists() else []
+    for lesson in lessons:
+        if not c.module(lesson.id):
+            raise ContentError(f"lesson {lesson.id} has no matching module in content/tracks")
+        _check_lesson_yaml(lesson)
+    c.lessons = {lesson.id: lesson for lesson in lessons}
     known = {ch.id for ch in c.challenges}
     for p in c.projects:
         unknown = set(p.challenges) - known
         if unknown:
             raise ContentError(f"project {p.id} references unknown challenges {sorted(unknown)}")
     return c
+
+
+def _check_lesson_yaml(lesson: Lesson) -> None:
+    """YAML in lessons must parse, and setup may only create namespaced objects of known kinds."""
+    for ex in lesson.yaml:
+        try:
+            list(yaml.safe_load_all(ex.content))
+        except yaml.YAMLError as e:
+            raise ContentError(f"lesson {lesson.id}: YAML example '{ex.title}' is invalid: {e}") from e
+    for exercise in lesson.exercises:
+        if not exercise.setup:
+            continue
+        where = f"lesson {lesson.id} exercise {exercise.id}"
+        try:
+            docs = [d for d in yaml.safe_load_all(exercise.setup) if d]
+        except yaml.YAMLError as e:
+            raise ContentError(f"{where}: setup is invalid YAML: {e}") from e
+        for d in docs:
+            if not isinstance(d, dict) or d.get("kind") not in SETUP_KINDS:
+                raise ContentError(f"{where}: setup kind must be one of {sorted(SETUP_KINDS)}")
+            if (d.get("metadata") or {}).get("namespace"):
+                raise ContentError(f"{where}: setup must not set a namespace (it always goes to lab-playground)")
+            if (d["kind"], d["metadata"]["name"]) not in {(r.kind, r.name) for r in exercise.cleanup}:
+                raise ContentError(f"{where}: {d['kind']} {d['metadata']['name']} from setup must be in cleanup")
 
 
 _content: Content | None = None
