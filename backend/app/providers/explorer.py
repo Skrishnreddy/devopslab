@@ -5,11 +5,13 @@ cached or invented. Columns follow `kubectl get` so the two can be compared.
 """
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 
 import yaml
 from kubernetes import client
 
+_UTC_TS = re.compile(r"'(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)\+00:00'")
 KINDS = {"pod", "deployment", "service", "namespace", "configmap", "node"}  # YAML view; never Secrets
 
 
@@ -115,4 +117,5 @@ def to_yaml(obj) -> str:
     (meta.get("annotations") or {}).pop("kubectl.kubernetes.io/last-applied-configuration", None)
     if meta.get("annotations") == {}:
         meta.pop("annotations")
-    return yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
+    out = yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
+    return _UTC_TS.sub(r"\1Z", out)  # kubectl style: 2026-11-19T09:10:45Z

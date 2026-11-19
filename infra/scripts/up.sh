@@ -26,6 +26,15 @@ else
 fi
 kind export kubeconfig --name "$CLUSTER_NAME" >/dev/null
 
+# After a VM restart the API server needs a moment; applying too early fails validation.
+info "Waiting for the Kubernetes API server"
+for _ in $(seq 1 90); do
+  k get --raw=/readyz >/dev/null 2>&1 && break
+  sleep 2
+done
+k get --raw=/readyz >/dev/null || die "The Kubernetes API server didn't become ready in 3 minutes. Check: make status"
+k wait --for=condition=Ready nodes --all --timeout=180s >/dev/null
+
 info "Applying lab namespaces and terminal sandbox policies"
 k apply -f "$ROOT/infra/manifests/base/"
 k apply -f "$ROOT/infra/manifests/terminal/"

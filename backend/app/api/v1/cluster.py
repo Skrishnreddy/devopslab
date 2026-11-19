@@ -24,6 +24,27 @@ NamePath = Annotated[str, Path(pattern=NAME)]
 FOLLOW_MAX_SECONDS = 30 * 60
 
 
+async def stop_stream(resp, reader: asyncio.Future) -> None:
+    """End a follow stream without blocking the event loop.
+
+    The reader thread holds the response's buffer lock while it waits in
+    recv(), so close() on the event loop would wait forever (found on the Mac:
+    the whole API froze when a browser left the logs view). shutdown() closes
+    the socket underneath the reader, which wakes it; only then is the
+    connection released, off the loop.
+    """
+    with contextlib.suppress(Exception):
+        resp.shutdown()
+    with contextlib.suppress(Exception):
+        await asyncio.wait_for(asyncio.shield(reader), timeout=5)
+
+    def _release():
+        with contextlib.suppress(Exception):
+            resp.release_conn()
+
+    await asyncio.to_thread(_release)
+
+
 def _call(fn: Callable[..., Any], *args, **kwargs):
     try:
         return fn(*args, **kwargs)
@@ -110,7 +131,7 @@ async def logs(request: Request, namespace: NsPath, name: NamePath,
             finally:
                 loop.call_soon_threadsafe(queue.put_nowait, None)
 
-        threading_task = asyncio.create_task(asyncio.to_thread(pump))
+        reader = asyncio.ensure_future(asyncio.to_thread(pump))
         started = time.monotonic()
         reason = "The log stream ended (the container stopped or was restarted)."
         try:
@@ -121,7 +142,7 @@ async def logs(request: Request, namespace: NsPath, name: NamePath,
                     reason = "Live logs stop after 30 minutes. Follow again to continue."
                     break
                 try:
-                    line = await asyncio.wait_for(queue.get(), timeout=15)
+                    line = await asyncio.wait_for(queue.get(), timeout=5)  # also how fast a disconnect is noticed
                 except TimeoutError:
                     yield ": keep-alive\n\n"
                     continue
@@ -130,10 +151,7 @@ async def logs(request: Request, namespace: NsPath, name: NamePath,
                 yield f"data: {json.dumps({'line': line})}\n\n"
             yield f"data: {json.dumps({'end': reason})}\n\n"
         finally:
-            with contextlib.suppress(Exception):
-                resp.close()
-                resp.release_conn()
-            threading_task.cancel()
+            await asyncio.shield(stop_stream(resp, reader))  # runs to the end even if we're cancelled
 
     return StreamingResponse(events(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

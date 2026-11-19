@@ -170,3 +170,59 @@ def test_lab_start_runs_the_script_and_reports_failure(authed, monkeypatch):
 
 def test_lab_actions_need_login_and_origin(client):
     assert client.post("/api/v1/lab/start").status_code == 401
+
+
+class BlockingResp:
+    """Like urllib3: stream() holds a lock while blocked in recv(); close() needs that lock."""
+
+    def __init__(self):
+        import threading
+        self.lock, self.wake, self.order = threading.Lock(), threading.Event(), []
+
+    def stream(self, *_a, **_k):
+        with self.lock:
+            self.wake.wait(10)
+        return iter(())
+
+    def shutdown(self):
+        self.order.append("shutdown")
+        self.wake.set()
+
+    def close(self):
+        with self.lock:
+            self.order.append("close")
+
+    def release_conn(self):
+        self.order.append("release")
+
+
+def test_stopping_a_follow_stream_never_blocks_the_event_loop():
+    from app.api.v1.cluster import stop_stream
+
+    async def run():
+        resp = BlockingResp()
+        reader = asyncio.ensure_future(asyncio.to_thread(lambda: list(resp.stream())))
+        await asyncio.sleep(0.05)  # reader is now blocked holding the lock
+        ticks = 0
+
+        async def heartbeat():
+            nonlocal ticks
+            while True:
+                ticks += 1
+                await asyncio.sleep(0.01)
+
+        hb = asyncio.create_task(heartbeat())
+        await asyncio.wait_for(stop_stream(resp, reader), timeout=3)
+        hb.cancel()
+        return resp, ticks
+
+    resp, ticks = asyncio.run(run())
+    assert resp.order[0] == "shutdown" and "release" in resp.order
+    assert ticks > 0  # the loop kept running
+
+
+def test_yaml_timestamps_look_like_kubectl():
+    pod = client.V1Pod(api_version="v1", kind="Pod",
+                       metadata=client.V1ObjectMeta(name="p", creation_timestamp=datetime(2026, 11, 19, 9, 10, 45,
+                                                                                          tzinfo=UTC)))
+    assert "creationTimestamp: 2026-11-19T09:10:45Z" in ex.to_yaml(pod)
