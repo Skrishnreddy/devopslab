@@ -8,6 +8,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cleanup() { trap - INT TERM EXIT; kill 0 2>/dev/null || true; }
 trap cleanup INT TERM EXIT
 
-(cd "$ROOT/backend" && .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir app) &
+(cd "$ROOT/backend" && .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir app --timeout-graceful-shutdown 5) &
 (cd "$ROOT/frontend" && npm run dev) &
 wait

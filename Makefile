@@ -40,7 +40,7 @@ install: ## Install backend + frontend dependencies
 	cd frontend && npm ci
 
 backend: ## Run the API on 127.0.0.1:8000
-	cd backend && .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir app
+	cd backend && .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir app --timeout-graceful-shutdown 5
 
 frontend: ## Run the UI on http://127.0.0.1:5173
 	cd frontend && npm run dev
