@@ -33,15 +33,28 @@ export interface Track {
 }
 export interface Project {
   id: string; name: string; status: Availability; phase: number; summary: string;
-  components: string[]; topics: string[]; challenges: string[];
+  components: string[]; topics: string[]; challenges: string[]; lab: string | null;
 }
 export interface ChallengeInfo {
   id: string; name: string; difficulty: Level; technology: string; status: Availability; phase: number;
   description: string; skills: string[];
 }
+export type LabStatus =
+  | "not_deployed" | "deploying" | "running" | "starting" | "stopping" | "stopped" | "resetting" | "deleting" | "failed";
+export type LabAction = "deploy" | "start" | "stop" | "reset" | "delete";
+export interface LabStep { name: string; state: "pending" | "running" | "ok" | "failed"; detail: string; seconds: number | null }
+export interface LabRun {
+  action: LabAction; state: "running" | "succeeded" | "failed"; error: string | null; failed_step: string | null;
+  started_at: number; finished_at: number | null; steps: LabStep[];
+}
 export interface Lab {
-  id: string; kind: string; ref_id: string; status: string; namespaces: string[]; last_error: string | null;
-  created_at: string; updated_at: string; expires_at: string | null;
+  id: string; kind: string; ref_id: string; url: string | null; status: LabStatus; namespaces: string[];
+  last_error: string | null; created_at: string | null; updated_at: string | null; expires_at: string | null;
+  operation: LabRun | null;
+}
+export interface LabUsage {
+  cpu_millicores: number; memory_mib: number; pods: number; metrics_error: string | null;
+  quota: Record<string, { hard: string; used: string }>;
 }
 export interface Attempt {
   id: number; challenge_id: string; name: string; status: string; hints_used: number;
@@ -163,6 +176,12 @@ export const api = {
   projects: () => req<Project[]>("/projects"),
   challenges: () => req<ChallengeInfo[]>("/challenges"),
   labs: () => req<Lab[]>("/labs"),
+  lab: (id: string) => req<Lab>(`/labs/${enc(id)}`),
+  deployLab: (refId: string) => req<Lab>("/labs", { method: "POST", body: JSON.stringify({ ref_id: refId }) }),
+  labDo: (id: string, action: "start" | "stop" | "reset" | "extend") =>
+    req<Lab>(`/labs/${enc(id)}/${action}`, { method: "POST" }),
+  deleteLab: (id: string) => req<Lab>(`/labs/${enc(id)}`, { method: "DELETE" }),
+  labUsage: (id: string) => req<LabUsage>(`/labs/${enc(id)}/usage`),
   attempts: (limit = 5) => req<Attempt[]>(`/challenges/attempts?limit=${limit}`),
   progress: () => req<ProgressSummary>("/progress/summary"),
   activity: (limit = 5) => req<ActivityItem[]>(`/activity/recent?limit=${limit}`),

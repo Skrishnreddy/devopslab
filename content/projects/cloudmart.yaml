@@ -1,7 +1,8 @@
 id: cloudmart
 name: CloudMart
-status: planned
+status: available
 phase: 4
+lab: cloudmart
 summary: 'E-commerce microservices: React storefront, FastAPI API, PostgreSQL, Redis, NGINX Ingress.'
 components:
 - React frontend

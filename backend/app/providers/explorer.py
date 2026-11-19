@@ -119,3 +119,22 @@ def to_yaml(obj) -> str:
         meta.pop("annotations")
     out = yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
     return _UTC_TS.sub(r"\1Z", out)  # kubectl style: 2026-11-19T09:10:45Z
+
+
+_CPU = {"n": 1e-6, "u": 1e-3, "m": 1.0, "": 1000.0}
+_MEM = {"Ki": 1 / 1024, "Mi": 1.0, "Gi": 1024.0, "Ti": 1024.0 ** 2, "K": 1e3 / 2**20, "M": 1e6 / 2**20,
+        "G": 1e9 / 2**20, "": 1 / 2**20}
+
+
+def cpu_millicores(q: str) -> float:
+    m = re.fullmatch(r"([0-9.]+)([num]?)", q)
+    if not m:
+        raise ValueError(f"bad cpu quantity {q!r}")
+    return float(m.group(1)) * _CPU[m.group(2)]
+
+
+def memory_mib(q: str) -> float:
+    m = re.fullmatch(r"([0-9.]+)(Ki|Mi|Gi|Ti|K|M|G)?", q)
+    if not m:
+        raise ValueError(f"bad memory quantity {q!r}")
+    return float(m.group(1)) * _MEM[m.group(2) or ""]

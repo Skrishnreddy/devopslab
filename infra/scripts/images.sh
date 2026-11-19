@@ -5,10 +5,21 @@
 source "$(dirname "$0")/lib.sh"
 for t in docker kind; do need "$t"; done
 
-TERMINAL_IMAGE="devopslab/terminal:0.1.0"  # must match IMAGE in backend/app/providers/terminal.py
+# name:tag=build context. Tags must match the code and manifests that use them:
+#   terminal       backend/app/providers/terminal.py (IMAGE)
+#   cloudmart-*    labs/cloudmart/{api,web}.yaml
+IMAGES=(
+  "devopslab/terminal:0.1.0=$ROOT/images/terminal"
+  "devopslab/cloudmart-api:0.1.0=$ROOT/apps/cloudmart/api"
+  "devopslab/cloudmart-web:0.1.0=$ROOT/apps/cloudmart/web"
+)
+only="${1:-}"  # optional filter, e.g. `images.sh cloudmart`
 
-info "Building $TERMINAL_IMAGE (first build takes a few minutes)"
-docker build -t "$TERMINAL_IMAGE" "$ROOT/images/terminal"
-
-info "Loading $TERMINAL_IMAGE into kind cluster '$CLUSTER_NAME'"
-kind load docker-image "$TERMINAL_IMAGE" --name "$CLUSTER_NAME"
+for entry in "${IMAGES[@]}"; do
+  image="${entry%%=*}" context="${entry#*=}"
+  [[ -n "$only" && "$image" != *"$only"* ]] && continue
+  info "Building $image (first build takes a few minutes)"
+  docker build -t "$image" "$context"
+  info "Loading $image into kind cluster '$CLUSTER_NAME'"
+  kind load docker-image "$image" --name "$CLUSTER_NAME"
+done

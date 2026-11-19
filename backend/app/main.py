@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__
-from .api.v1 import auth, cluster, engineer, learn, system, terminal
+from .api.v1 import auth, cluster, engineer, labs, learn, system, terminal
 from .auth.provider import auth_provider
 from .content.loader import get_content
 from .core import errors
@@ -33,9 +33,24 @@ async def lifespan(_: FastAPI):
     terminals = registry.terminal()
     terminals.on_close = terminal.record_close
     reaper = asyncio.create_task(_reap_terminals(terminals))
+    lab_service = registry.labs()
+    lab_service.recover()
+    lab_reaper = asyncio.create_task(_expire_labs(lab_service))
     yield
     reaper.cancel()
+    lab_reaper.cancel()
     await terminals.close_all()
+
+
+async def _expire_labs(svc) -> None:
+    """Stop (scale to zero) labs whose time limit passed. Never deletes anything."""
+    while True:
+        await asyncio.sleep(60)
+        try:
+            for lab_id in await svc.expire():
+                log.info("Lab %s reached its time limit; stopping it", lab_id)
+        except Exception as e:
+            log.warning("Lab expiry check failed: %s", e)
 
 
 async def _reap_terminals(mgr) -> None:
@@ -62,7 +77,7 @@ def create_app() -> FastAPI:
                        allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Content-Type"])
     errors.install(app)
     for r in (system.public, auth.router, system.router, cluster.router, learn.router, engineer.router,
-              terminal.router):
+              terminal.router, labs.router):
         app.include_router(r, prefix="/api/v1")
     return app
 

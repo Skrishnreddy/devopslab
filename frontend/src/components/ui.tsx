@@ -62,6 +62,7 @@ const badgeTone: Record<string, string> = {
   started: "bg-sky-500/15 text-sky-300",
   running: "bg-emerald-500/15 text-emerald-300",
   failed: "bg-red-500/15 text-red-300",
+  stopped: "bg-amber-500/15 text-amber-300",
   passed: "bg-emerald-500/15 text-emerald-300",
 };
 

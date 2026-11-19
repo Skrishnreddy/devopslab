@@ -39,7 +39,8 @@ def test_unknown_module_and_track(authed):
 
 
 def test_engineer_reads_are_real_and_empty(authed):
-    assert authed.get("/api/v1/labs").json() == []
+    labs = authed.get("/api/v1/labs").json()  # deployable labs, none deployed yet
+    assert [(lab["id"], lab["status"], lab["namespaces"]) for lab in labs] == [("cloudmart", "not_deployed", [])]
     assert authed.get("/api/v1/challenges/attempts").json() == []
     projects = authed.get("/api/v1/projects").json()
     assert projects[0]["id"] == "cloudmart" and len(projects) == 5

@@ -40,6 +40,21 @@ short-lived kind cluster rather than breaking the shared cluster.
 7. **Resource accounting.** Lab status includes live CPU/memory from
    metrics-server summed over its namespaces.
 
+## What Phase 4 implements
+
+The design above is the target. This is what runs today, for the CloudMart
+project lab (`labs/cloudmart`, engine in `backend/app/providers/labs.py`):
+
+| Guarantee | Today |
+|---|---|
+| 1. Labels | `lab-cloudmart` carries `managed`, `resettable` and `lab-id`. The `owner` label and per-user namespace prefix are **Planned** with multi-user; DevOpsLab is single-user, and the API still checks that the lab row belongs to the logged-in user. |
+| 2. What gets deleted | Reset and delete render the lab's manifests and delete only the namespaces those manifests label `resettable=true`, minus `default`, `kube-*`, `ingress-nginx` and `devopslab-*`. If none qualify, nothing is touched. |
+| 3. Guardrails | ResourceQuota requests 2 CPU / 2Gi, limits 4 CPU / 3Gi, 20 pods, 3 PVCs, 0 NodePorts and LoadBalancers (CloudMart needs more than the 1 CPU / 1Gi above); LimitRange defaults; NetworkPolicy admitting only same-namespace, ingress-nginx and DevOpsLab terminal traffic; Pod Security `baseline`. |
+| 4. Credentials | `lab-learner` gets `edit` in `lab-cloudmart` through a RoleBinding shipped with the lab. The database password is generated randomly in the cluster (`kubectl apply` over stdin, never on a command line) and is never written to git, the database or logs. Reset creates a new one. |
+| 5. Reset | Delete namespaces (waits for termination) → create namespaces → generate secrets → apply manifests → wait for every Deployment and StatefulSet rollout. Every step is recorded with its duration; a failure stops there, marks the lab `failed` and stores `<step>: <kubectl error>` with the pods that aren't ready. One operation per lab at a time (`409` otherwise). Labs caught mid-operation by a restart are marked failed with that reason. |
+| 6. Expiry | A running lab expires 4 h after it was last (re)started or extended, and is then **stopped** (scaled to 0), never deleted. Deleting long-idle labs is **Planned**. |
+| 7. Usage | `GET /labs/{id}/usage`: live CPU/memory from metrics-server and quota used/hard, summed over the lab's namespaces. |
+
 ## Multi-user (future)
 
 Today DevOpsLab is single-user on localhost. The owner label, per-user

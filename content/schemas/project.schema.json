@@ -48,6 +48,19 @@
       },
       "title": "Challenges",
       "type": "array"
+    },
+    "lab": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Folder in labs/ with the project's known-good manifests",
+      "title": "Lab"
     }
   },
   "required": [
