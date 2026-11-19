@@ -1,0 +1,7 @@
+# Read by the lab engine (backend/app/providers/labs.py), not applied to the cluster.
+id: cloudmart
+url: http://localhost:8080
+# Created in the cluster with random values at deploy time; never stored in git.
+generated_secrets:
+  - name: cloudmart-db
+    keys: [password]

@@ -15,7 +15,7 @@ prereqs: ## Install colima, docker, kind, kubectl, helm, node, python (Homebrew)
 up: ## Start Colima + kind cluster + ingress + metrics-server
 	@$(S)/up.sh
 
-images: ## Build the terminal image and load it into the cluster (make up does this too)
+images: ## Build the terminal and CloudMart images and load them into the cluster (make up does this too)
 	@$(S)/images.sh
 
 docker-vm-up: ## Start the Docker terminal's VM (the backend also starts it on demand)

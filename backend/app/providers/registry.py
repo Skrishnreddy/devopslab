@@ -35,3 +35,10 @@ def lab_ops():
     from .lab_ops import LabOperations
 
     return LabOperations()
+
+
+@cache
+def labs():
+    from .lab_service import LabService
+
+    return LabService()

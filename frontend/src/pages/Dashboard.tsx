@@ -73,7 +73,7 @@ export default function Dashboard() {
 
   const k8s = tracks.data?.find((t) => t.id === "kubernetes");
   const next = k8s?.modules.find((m) => m.status === "started") ?? k8s?.modules.find((m) => m.status !== "completed");
-  const activeLabs = labs.data?.filter((l) => ["running", "creating", "resetting"].includes(l.status)) ?? [];
+  const activeLabs = labs.data?.filter((l) => l.status !== "not_deployed") ?? [];
 
   return (
     <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-3">
@@ -101,7 +101,7 @@ export default function Dashboard() {
               <span className="font-mono text-white">{l.ref_id}</span><Badge>{l.status}</Badge>
             </li>))}
           </ul>
-        ) : <Empty>No labs running. Deployable labs arrive with CloudMart in Phase 4.</Empty>}
+        ) : <Empty>No labs deployed. <Link to="/projects" className="text-accent hover:underline">Deploy CloudMart</Link> from Projects.</Empty>}
       </Card>
 
       <Card title="Learning progress" className="lg:col-span-2"

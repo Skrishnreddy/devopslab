@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session as DB
 
 from ...auth.deps import Principal, current_principal
 from ...content.loader import get_content
-from ...db.models import Activity, ChallengeAttempt, Lab, ModuleProgress
+from ...db.models import Activity, ChallengeAttempt, ModuleProgress
 from ...db.session import get_db
 
 router = APIRouter(tags=["engineer"])
@@ -20,16 +20,6 @@ def projects(_: Principal = Depends(current_principal)):
 def challenges(_: Principal = Depends(current_principal)):
     return [c.model_dump(include={"id", "name", "difficulty", "technology", "status", "phase", "description",
                                   "skills"}) for c in get_content().challenges]
-
-
-@router.get("/labs")
-def labs(status: str | None = None, p: Principal = Depends(current_principal), db: DB = Depends(get_db)):
-    q = select(Lab).where(Lab.user_id == p.user.id).order_by(Lab.updated_at.desc())
-    if status:
-        q = q.where(Lab.status == status)
-    return [{"id": lab.id, "kind": lab.kind, "ref_id": lab.ref_id, "status": lab.status,
-             "namespaces": lab.namespaces, "last_error": lab.last_error, "created_at": lab.created_at,
-             "updated_at": lab.updated_at, "expires_at": lab.expires_at} for lab in db.scalars(q)]
 
 
 @router.get("/challenges/attempts")

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lab-cloudmart
+  labels:
+    devopslab.io/managed: "true"
+    devopslab.io/resettable: "true"
+    devopslab.io/lab-id: cloudmart
+    pod-security.kubernetes.io/enforce: baseline

@@ -52,7 +52,7 @@ describe("dashboard", () => {
     expect(await screen.findByText("Profile 'devopslab' is not running")).toBeInTheDocument();
     expect(screen.getAllByText("make up", { selector: "code" }).length).toBeGreaterThan(0);
     expect(await screen.findByText("The lab cluster isn't reachable.")).toBeInTheDocument();
-    expect(screen.getByText(/No labs running/)).toBeInTheDocument();
+    expect(screen.getByText(/No labs deployed/)).toBeInTheDocument();
     expect(screen.getByText(/No challenges attempted/)).toBeInTheDocument();
   });
 

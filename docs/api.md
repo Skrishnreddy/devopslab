@@ -35,7 +35,13 @@ Base path `/api/v1`. JSON everywhere. Served on 127.0.0.1 only.
 | GET | `/learn/tracks/{track_id}` | | `Track` |
 | PUT | `/learn/modules/{module_id}/progress` | `{status: not_started\|started\|completed}` | `{module_id, status, completed_at}` |
 | GET | `/projects` | | `[Project]` from content catalog, with `status` |
-| GET | `/labs` | `?status=` | `[Lab]` from the database |
+| GET | `/labs` | | every deployable lab: `[Lab]`, `status: not_deployed` when it has never been deployed |
+| GET | `/labs/{id}` | | `Lab`: `{id, kind, ref_id, url, status, namespaces, last_error, created_at, updated_at, expires_at, operation}`. `status`: `not_deployed`, `deploying`, `running`, `starting`, `stopping`, `stopped`, `resetting`, `deleting`, `failed`. `operation` (in memory, last one): `{action, state: running\|succeeded\|failed, error, failed_step, steps: [{name, state: pending\|running\|ok\|failed, detail, seconds}]}` |
+| POST | `/labs` | `{ref_id}` | `202 Lab` (deploying); `404` unknown lab, `409` already deployed |
+| POST | `/labs/{id}/{start\|stop\|reset}` | | `202 Lab`; `409` if busy or not allowed from the current status |
+| POST | `/labs/{id}/extend` | | `202 Lab` with a new `expires_at` (running labs only) |
+| DELETE | `/labs/{id}` | | `202 Lab` (deleting); the lab returns to `not_deployed` when done |
+| GET | `/labs/{id}/usage` | | `{cpu_millicores, memory_mib, pods, quota: {name: {hard, used}}, metrics_error}`; `404` if not deployed |
 | GET | `/challenges/attempts` | `?limit=` | recent `[ChallengeAttempt]` |
 | GET | `/progress/summary` | | `{overall_percent, modules_completed, modules_total, challenges_passed, challenges_failed, hints_used, learning_seconds, skills[]}` |
 | GET | `/activity/recent` | `?kind=&limit=` | `[{kind, ref_id, title, at}]` |
@@ -57,10 +63,6 @@ Base path `/api/v1`. JSON everywhere. Served on 127.0.0.1 only.
 | 3 | GET | `/lab/operation` | last start/stop: state, exit code, last 300 output lines |
 | 3 | POST | `/lab/{start\|stop}` | `202`; runs `infra/scripts/up.sh` / `down.sh` (same as `make up` / `make down`); `409` if one is running |
 |   |   | Kubernetes API errors | passed through verbatim: `{"error":{"code":"kubernetes_error","message":"pods \"x\" not found","detail":{"status":404}}}`; unreachable cluster is `503 cluster_unreachable` |
-| 4 | POST | `/labs` | `{kind, ref_id}` → `202 {lab}` |
-| 4 | POST | `/labs/{id}/{start\|stop\|reset}` | `202`; status via `GET /labs/{id}` |
-| 4 | DELETE | `/labs/{id}` | `202` |
-| 4 | GET | `/labs/{id}/usage` | live CPU/memory |
 | 5 | POST | `/learn/exercises/{id}/check` | runs validation in the lab |
 | 6 | POST | `/challenges/{id}/start` | creates lab + injects fault |
 | 6 | POST | `/challenges/attempts/{id}/hints` | reveals next hint (max 3) |

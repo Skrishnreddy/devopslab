@@ -48,6 +48,7 @@ class Project(Strict):
     components: list[str]
     topics: list[str]
     challenges: list[str] = Field([], description="Challenge ids that run against this project")
+    lab: str | None = Field(None, description="Folder in labs/ with the project's known-good manifests")
 
 
 class Hint(Strict):

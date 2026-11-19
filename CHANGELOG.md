@@ -5,6 +5,19 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added (Phase 4: CloudMart and lab management)
+- CloudMart: React storefront, FastAPI API, PostgreSQL and Redis behind ingress-nginx at
+  http://localhost:8080, as Kustomize manifests in `labs/cloudmart` with quota, limit range,
+  network policy and Pod Security `baseline`. `make images` builds and loads its two images.
+- Lab engine: deploy, stop (scale to zero, data kept), start, reset and delete as named steps,
+  one operation at a time. A failure stops at its step and shows the real `kubectl` error and
+  the pods that aren't ready; the lab is marked failed and the error survives restarts.
+- The database password is generated randomly in the cluster at deploy time; never in git.
+- Labs stop automatically 4 h after they were started or extended; nothing is deleted
+  automatically. Live CPU/memory and quota usage per lab.
+- Projects page: Deploy, Open, Stop, Start, Extend, Reset and Delete (with confirmation),
+  step progress and usage. The dashboard lists deployed labs.
+
 ### Added (Phase 3: Kubernetes views)
 - Kubernetes explorer: pods, deployments, services, events and namespaces with a namespace filter;
   columns match `kubectl get`.

@@ -1,9 +1,11 @@
 import { api } from "../api";
+import { ProjectLab } from "../components/ProjectLab";
 import { useApi } from "../lib/useApi";
 import { Card, ErrorBox, PageHeader, PlannedBadge } from "../components/ui";
 
 export default function Projects() {
   const { data, error } = useApi(api.projects);
+  const labs = useApi(api.labs);
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader title="Projects" subtitle="Engineer Mode: production-style projects you deploy on demand, explore, break and restore." />
@@ -18,6 +20,13 @@ export default function Projects() {
             </div>
             <h3 className="mt-4 text-xs font-medium uppercase tracking-wider text-ink-400">You'll practise</h3>
             <p className="mt-1 text-sm text-ink-400">{p.topics.join(" · ")}</p>
+            {p.lab && p.status === "available" && (
+              <div className="mt-4">
+                {labs.error ? <ErrorBox error={labs.error} title="Couldn't load lab status" />
+                  : labs.data ? <ProjectLab labId={p.lab} initial={labs.data.find((l) => l.id === p.lab)} />
+                  : <p className="text-sm text-ink-400">Loading lab…</p>}
+              </div>
+            )}
           </Card>
         ))}
       </div>

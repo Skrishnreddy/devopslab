@@ -28,3 +28,14 @@ def test_config_env_matches_backend_defaults():
                if line and not line.startswith("#"))
     s = Settings()
     assert env["COLIMA_PROFILE"] == s.colima_profile and env["CLUSTER_NAME"] == s.cluster_name
+
+
+def test_images_script_builds_every_local_image_the_code_uses():
+    """Images with imagePullPolicy Never must be built by images.sh with the same tag."""
+    import re
+
+    from app.providers.terminal import IMAGE
+    built = set(re.findall(r'"(devopslab/[a-z0-9-]+:[0-9.]+)=', (INFRA / "scripts" / "images.sh").read_text()))
+    used = {IMAGE} | {doc_image for f in (REPO_ROOT / "labs").glob("*/*.yaml")
+                      for doc_image in re.findall(r"image: (devopslab/\S+)", f.read_text())}
+    assert used and used == built

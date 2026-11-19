@@ -1,0 +1,18 @@
+# http://localhost:8080/ -> storefront, http://localhost:8080/api -> API
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloudmart
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: {name: api, port: {name: http}}
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: web, port: {name: http}}

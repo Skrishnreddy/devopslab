@@ -1,0 +1,58 @@
+# Per-lab guardrails (docs/security/lab-isolation.md).
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: lab-quota
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 2Gi
+    limits.cpu: "4"
+    limits.memory: 3Gi
+    pods: "20"
+    persistentvolumeclaims: "3"
+    services.nodeports: "0"
+    services.loadbalancers: "0"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: lab-defaults
+spec:
+  limits:
+    - type: Container
+      default: {cpu: 250m, memory: 256Mi}
+      defaultRequest: {cpu: 50m, memory: 64Mi}
+---
+# Inside the lab everything can talk; from outside only the ingress controller
+# and the Kubernetes terminal sandboxes can connect.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: lab-ingress
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: ingress-nginx}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: devopslab-terminal}
+          podSelector:
+            matchLabels: {devopslab.io/terminal-profile: kubernetes}
+---
+# The Kubernetes terminal can work on this lab (edit, never admin).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: lab-learner-edit
+subjects:
+  - kind: ServiceAccount
+    name: lab-learner
+    namespace: devopslab-terminal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit

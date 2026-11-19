@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     terminal_max_sessions: int = 4  # per user
     terminal_start_timeout_seconds: float = 90.0
     terminal_reap_interval_seconds: float = 60.0
+    # Labs (Phase 4): running labs are stopped (scaled to zero, data kept) after this long without activity
+    lab_idle_seconds: int = 4 * 3600
+
     # Docker terminal VM (must match DOCKER_VM_PROFILE in infra/config.env)
     docker_vm_profile: str = "devopslab-docker"
     docker_vm_idle_seconds: int = 10 * 60  # stopped this long after the last Docker terminal closes

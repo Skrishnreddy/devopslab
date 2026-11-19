@@ -260,3 +260,27 @@ class KindCluster:
             raise ClusterUnavailable(f"Kubernetes API unreachable: {e.reason}") from e
         except Exception as e:
             raise ClusterUnavailable(f"Kubernetes API unreachable: {e.__class__.__name__}: {e}"[:400]) from e
+
+    def usage(self, namespaces: list[str]) -> dict:
+        """Live CPU/memory from metrics-server plus quota usage, summed over a lab's namespaces."""
+        api = self._api()
+        core, custom = client.CoreV1Api(api), client.CustomObjectsApi(api)
+        cpu_m = mem_mi = 0.0
+        pods = 0
+        metrics_error = None
+        quota: dict[str, dict[str, str]] = {}
+        for ns in namespaces:
+            pods += len(self._call(core.list_namespaced_pod, ns).items)
+            try:
+                items = self._call(custom.list_namespaced_custom_object, "metrics.k8s.io", "v1beta1", ns, "pods")
+                for pm in items.get("items", []):
+                    for c in pm.get("containers", []):
+                        cpu_m += ex.cpu_millicores(c["usage"]["cpu"])
+                        mem_mi += ex.memory_mib(c["usage"]["memory"])
+            except (ClusterAPIError, ClusterUnavailable) as e:
+                metrics_error = f"metrics-server: {e}"
+            for q in self._call(core.list_namespaced_resource_quota, ns).items:
+                for k, hard in (q.status.hard or {}).items():
+                    quota[k] = {"hard": hard, "used": (q.status.used or {}).get(k, "0")}
+        return {"cpu_millicores": round(cpu_m), "memory_mib": round(mem_mi), "pods": pods,
+                "quota": quota, "metrics_error": metrics_error}
